@@ -1,9 +1,11 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PageContainer } from '@/components/ui/PageContainer';
+import { DatabaseService, HifzLog } from '@/data/db/DatabaseService';
 import {
   eighthsToLabel, absEighthLabel, calcDailyReview,
   TOTAL_EIGHTHS, EIGHTHS_PER_HIZB,
@@ -14,13 +16,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TodayScreen() {
-  // Individual selectors — required for React 19 Compiler compatibility.
-  // The compiler memoizes components aggressively; per-value selectors
-  // guarantee a re-render whenever any of these values change.
   const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
   const weeklyGoalEighths = useHifzStore(s => s.weeklyGoalEighths);
   const izharDay          = useHifzStore(s => s.izharDay);
   const reviewCursor      = useHifzStore(s => s.reviewCursor);
+  const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
 
   const today       = todayStr();
   const weekDates   = getWeekDates(izharDay);
@@ -37,6 +37,54 @@ export default function TodayScreen() {
   const hizbCount = Math.floor(memorizedEighths / EIGHTHS_PER_HIZB);
   const remEighths = memorizedEighths % EIGHTHS_PER_HIZB;
   const pct = Math.round((memorizedEighths / TOTAL_EIGHTHS) * 100);
+
+  // --- Task Interaction State ---
+  const [completedIzhar, setCompletedIzhar] = useState(false);
+  const [completedReview, setCompletedReview] = useState(false);
+
+  // Load today's logs whenever this screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      const fetchLogs = async () => {
+        const logs = await DatabaseService.getLogsForDate(today);
+        if (isActive) {
+          setCompletedIzhar(logs.some(l => l.task_type === 'izhar'));
+          setCompletedReview(logs.some(l => l.task_type === 'review'));
+        }
+      };
+      fetchLogs();
+      return () => { isActive = false; };
+    }, [today])
+  );
+
+  const handleToggleIzhar = async () => {
+    if (completedIzhar) {
+      // Uncheck
+      await DatabaseService.removeLog(today, 'izhar');
+      setCompletedIzhar(false);
+    } else {
+      // Check
+      await DatabaseService.addLog(today, 'izhar', weeklyGoalEighths);
+      setCompletedIzhar(true);
+      
+      // Auto-increment memorized total
+      addMemorizedEighths(weeklyGoalEighths);
+      // We don't trigger native Alert on Web since it looks bad, just silent completion.
+    }
+  };
+
+  const handleToggleReview = async () => {
+    if (completedReview) {
+      // Uncheck
+      await DatabaseService.removeLog(today, 'review');
+      setCompletedReview(false);
+    } else {
+      // Check
+      await DatabaseService.addLog(today, 'review', dailyReview);
+      setCompletedReview(true);
+    }
+  };
 
   return (
     <PageContainer>
@@ -101,17 +149,23 @@ export default function TodayScreen() {
         <View style={{ gap: 12 }}>
           {/* Izhar task */}
           {isIzharDay && !quranComplete && (
-            <View style={taskCard('#30363d', 'rgba(168,85,247,0.3)')}>
-              <View style={checkbox} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', marginBottom: 4 }}>
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={handleToggleIzhar}
+              style={taskCard(completedIzhar ? 'rgba(168,85,247,0.15)' : '#21262d', completedIzhar ? 'rgba(168,85,247,0.6)' : 'rgba(168,85,247,0.3)')}
+            >
+              <View style={[checkbox, completedIzhar && { backgroundColor: '#c084fc', borderColor: '#c084fc' }]}>
+                {completedIzhar && <Ionicons name="checkmark" size={16} color="#0d1117" style={{ marginTop: 1, marginLeft: 1 }} />}
+              </View>
+              <View style={{ flex: 1, opacity: completedIzhar ? 0.6 : 1 }}>
+                <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
                   ◆ استظهار الحفظ الجديد — {eighthsToLabel(weeklyGoalEighths)}
                 </Text>
-                <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22 }}>
+                <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
                   {`من ${absEighthLabel(izharFromIdx)} إلى ${absEighthLabel(izharToIdx)}`}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
 
           {isIzharDay && quranComplete && (
@@ -121,13 +175,19 @@ export default function TodayScreen() {
           )}
 
           {/* Daily review */}
-          <View style={taskCard('#30363d', '#30363d')}>
-            <View style={checkbox} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#8b949e', fontSize: 11, fontWeight: 'bold', marginBottom: 4 }}>
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={handleToggleReview}
+            style={taskCard(completedReview ? 'rgba(46,160,67,0.15)' : '#21262d', completedReview ? '#2ea043' : '#30363d')}
+          >
+            <View style={[checkbox, completedReview && { backgroundColor: '#2ea043', borderColor: '#2ea043' }]}>
+              {completedReview && <Ionicons name="checkmark" size={16} color="#fff" style={{ marginTop: 1, marginLeft: 1 }} />}
+            </View>
+            <View style={{ flex: 1, opacity: completedReview ? 0.6 : 1 }}>
+              <Text style={{ color: completedReview ? '#2ea043' : '#8b949e', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textDecorationLine: completedReview ? 'line-through' : 'none' }}>
                 🔁 المراجعة اليومية — {eighthsToLabel(dailyReview)}
               </Text>
-              <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22 }}>
+              <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textDecorationLine: completedReview ? 'line-through' : 'none' }}>
                 {memorizedEighths === 0
                   ? 'لا يوجد محفوظ بعد'
                   : todaySchedule.eighths.length > 0
@@ -136,7 +196,7 @@ export default function TodayScreen() {
                 }
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#30363d' }}>
@@ -149,7 +209,7 @@ export default function TodayScreen() {
   );
 }
 
-// ─── Style helpers (avoids className on non-NativeWind-aware props) ──────────
+// ─── Style helpers ──────────
 const statCard: object = {
   flex: 1,
   backgroundColor: '#161b22',
@@ -178,13 +238,15 @@ const checkbox: object = {
   borderWidth: 2,
   borderColor: '#8b949e',
   marginTop: 2,
+  alignItems: 'center',
+  justifyContent: 'center',
 };
 function taskCard(bg: string, border: string): object {
   return {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: '#21262d',
+    backgroundColor: bg,
     borderWidth: 1,
     borderColor: border,
     borderRadius: 12,
