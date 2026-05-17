@@ -74,7 +74,7 @@ export default function WeekScreen() {
                     <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
                       <Ionicons name="leaf-outline" size={16} color="#8b949e" />
                       <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right' }}>
-                        مراجعة اختيارية (تمت مراجعة المحفوظ بالكامل هذا الأسبوع)
+                        راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع)
                       </Text>
                     </View>
                   ) : (

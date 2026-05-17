@@ -1,10 +1,28 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
+import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
+import { View, ActivityIndicator } from 'react-native';
 
 const TAB_ICON_SIZE = 24;
 
 export default function TabLayout() {
+  const hasCompletedOnboarding = useHifzStore(s => s.hasCompletedOnboarding);
+  const _hasHydrated = useHifzStore(s => s._hasHydrated);
+
+  if (!_hasHydrated) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0d1117', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#d4a843" />
+      </View>
+    );
+  }
+
+  if (!hasCompletedOnboarding) {
+    return <Redirect href="/onboarding" />;
+  }
+
   return (
     <Tabs
       screenOptions={{

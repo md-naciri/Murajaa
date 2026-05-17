@@ -5,6 +5,7 @@ export interface HifzState {
   memorizedEighths: number;
   weeklyGoalEighths: number;
   izharDay: number; // 0-6 (Sunday-Saturday)
+  hasCompletedOnboarding: boolean;
   _hasHydrated: boolean; // Flag to indicate if initial load from storage is done
 }
 
@@ -13,6 +14,7 @@ export interface HifzActions {
   setWeeklyGoal: (amount: number) => void;
   setIzharDay: (day: number) => void;
   addMemorizedEighths: (amount: number) => void;
+  completeOnboarding: () => void;
   _setHydrated: (state: Partial<HifzState>) => void;
 }
 
@@ -20,6 +22,7 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   memorizedEighths: 0,
   weeklyGoalEighths: 2,
   izharDay: 4, // Thursday default
+  hasCompletedOnboarding: false,
   _hasHydrated: false,
 
   setMemorizedEighths: (amount) => set({ memorizedEighths: amount }),
@@ -28,6 +31,7 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   addMemorizedEighths: (amount) => set((state) => ({ 
     memorizedEighths: Math.max(0, state.memorizedEighths + amount)
   })),
+  completeOnboarding: () => set({ hasCompletedOnboarding: true }),
   _setHydrated: (persistedState) => set({ ...persistedState, _hasHydrated: true }),
 }));
 
@@ -59,12 +63,14 @@ useHifzStore.subscribe((state, prevState) => {
   if (
     state.memorizedEighths !== prevState.memorizedEighths ||
     state.weeklyGoalEighths !== prevState.weeklyGoalEighths ||
-    state.izharDay !== prevState.izharDay
+    state.izharDay !== prevState.izharDay ||
+    state.hasCompletedOnboarding !== prevState.hasCompletedOnboarding
   ) {
     const stateToSave = {
       memorizedEighths: state.memorizedEighths,
       weeklyGoalEighths: state.weeklyGoalEighths,
       izharDay: state.izharDay,
+      hasCompletedOnboarding: state.hasCompletedOnboarding,
     };
     storageAdapter.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
   }

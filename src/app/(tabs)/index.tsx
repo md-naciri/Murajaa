@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, LayoutAnimation } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Card } from '@/components/ui/Card';
@@ -29,11 +29,7 @@ export default function TodayScreen() {
   const weekSchedule  = buildWeekSchedule(memorizedEighths, weekDates);
   const todaySchedule = weekSchedule.find(d => d.date === today) ?? { eighths: [], amount: 0, isOptional: false };
 
-  const izharFromIdx  = memorizedEighths;
-  const izharToIdx    = Math.min(TOTAL_EIGHTHS - 1, memorizedEighths + weeklyGoalEighths - 1);
-  const izharRangeStr = izharFromIdx === izharToIdx 
-    ? absEighthLabel(izharFromIdx)
-    : `من ${absEighthLabel(izharFromIdx)} إلى ${absEighthLabel(izharToIdx)}`;
+
   const quranComplete = memorizedEighths >= TOTAL_EIGHTHS;
 
   const hizbCount = Math.floor(memorizedEighths / EIGHTHS_PER_HIZB);
@@ -43,6 +39,14 @@ export default function TodayScreen() {
   // --- Task Interaction State ---
   const [completedIzhar, setCompletedIzhar] = useState(false);
   const [completedReview, setCompletedReview] = useState(false);
+
+  // If Izhar is marked done, the store has already incremented, so we shift the index back to display what was actually completed.
+  const izharBaseIdx  = completedIzhar ? Math.max(0, memorizedEighths - weeklyGoalEighths) : memorizedEighths;
+  const izharFromIdx  = izharBaseIdx;
+  const izharToIdx    = Math.min(TOTAL_EIGHTHS - 1, izharBaseIdx + weeklyGoalEighths - 1);
+  const izharRangeStr = izharFromIdx === izharToIdx 
+    ? absEighthLabel(izharFromIdx)
+    : `من ${absEighthLabel(izharFromIdx)} إلى ${absEighthLabel(izharToIdx)}`;
 
   // Load today's logs whenever this screen comes into focus
   useFocusEffect(
@@ -61,10 +65,12 @@ export default function TodayScreen() {
   );
 
   const handleToggleIzhar = async () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (completedIzhar) {
       // Uncheck
       await DatabaseService.removeLog(today, 'izhar');
       setCompletedIzhar(false);
+      addMemorizedEighths(-weeklyGoalEighths);
     } else {
       // Check
       await DatabaseService.addLog(today, 'izhar', weeklyGoalEighths, izharRangeStr);
@@ -77,6 +83,7 @@ export default function TodayScreen() {
   };
 
   const handleToggleReview = async () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (completedReview) {
       // Uncheck
       await DatabaseService.removeLog(today, 'review');
