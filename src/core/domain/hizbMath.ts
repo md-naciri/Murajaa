@@ -1,0 +1,51 @@
+// ============================================================
+// CONSTANTS
+// ============================================================
+export const TOTAL_HIZB = 60;
+export const EIGHTHS_PER_HIZB = 8;
+export const TOTAL_EIGHTHS = TOTAL_HIZB * EIGHTHS_PER_HIZB; // 480
+
+export const UNIT_OPTIONS = [
+  { label: "ثمن", value: 1 },
+  { label: "ربع (ثمنان)", value: 2 },
+  { label: "ثلاثة أثمان", value: 3 },
+  { label: "نصف حزب", value: 4 },
+  { label: "خمسة أثمان", value: 5 },
+  { label: "ثلاثة أرباع", value: 6 },
+  { label: "سبعة أثمان", value: 7 },
+  { label: "حزب كامل", value: 8 },
+  { label: "حزب وثمن", value: 9 },
+  { label: "حزب وربع", value: 10 },
+  { label: "حزب ونصف", value: 12 },
+  { label: "حزبان", value: 16 },
+];
+
+// ============================================================
+// PURE HELPERS
+// ============================================================
+
+export function eighthsToLabel(eighths: number): string {
+  if (eighths <= 0) return "—";
+  const hizb = Math.floor(eighths / EIGHTHS_PER_HIZB);
+  const rem  = eighths % EIGHTHS_PER_HIZB;
+  const remNames = ["","ثمن","ربع","ربع وثمن","نصف","نصف وثمن","ثلاثة أرباع","سبعة أثمان"];
+  const hizbPart = hizb > 0 ? (hizb === 1 ? "حزب" : `${hizb} أحزاب`) : "";
+  const remPart  = rem > 0 ? remNames[rem] : "";
+  if (hizbPart && remPart) return `${hizbPart} و${remPart}`;
+  return hizbPart || remPart;
+}
+
+export function eighthName(idx: number): string {
+  return ["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن"][idx] ?? `${idx+1}`;
+}
+
+export function absEighthLabel(absIdx: number): string {
+  const hizbNum  = Math.floor(absIdx / EIGHTHS_PER_HIZB) + 1;
+  const eighthIdx = absIdx % EIGHTHS_PER_HIZB;
+  return `الثمن ${eighthName(eighthIdx)} من الحزب ${hizbNum}`;
+}
+
+export function calcDailyReview(totalEighths: number): number {
+  if (totalEighths <= 0) return 0;
+  return Math.max(1, Math.ceil(totalEighths / 7));
+}
