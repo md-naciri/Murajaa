@@ -53,7 +53,7 @@ export default function LogScreen() {
   const renderItem = ({ item }: { item: HifzLog }) => {
     const isIzhar = item.task_type === 'izhar';
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#161b22', padding: 16, borderBottomWidth: 1, borderBottomColor: '#30363d' }}>
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#161b22', padding: 16, borderBottomWidth: 1, borderBottomColor: '#30363d' }}>
         <View style={{ width: 40, alignItems: 'center' }}>
           <Ionicons 
             name={isIzhar ? 'star' : 'sync'} 
@@ -61,16 +61,16 @@ export default function LogScreen() {
             color={isIzhar ? '#c084fc' : '#2ea043'} 
           />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold' }}>
-            {isIzhar ? 'استظهار حفظ جديد' : 'مراجعة يومية'}
+        <View style={{ flex: 1, marginLeft: 16 }}>
+          <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold', textAlign: 'right' }}>
+            {isIzhar ? 'تم استظهار الحفظ الجديد' : 'تم إنجاز المراجعة اليومية'}
           </Text>
-          <Text style={{ color: '#8b949e', fontSize: 12, marginTop: 4 }}>
-            المقدار: {eighthsToLabel(item.eighths_amount)}
+          <Text style={{ color: '#8b949e', fontSize: 12, marginTop: 4, textAlign: 'right' }}>
+            {item.range_string ? item.range_string : `المقدار: ${eighthsToLabel(item.eighths_amount)}`}
           </Text>
         </View>
-        <View>
-          <Text style={{ color: '#8b949e', fontSize: 11 }}>
+        <View style={{ backgroundColor: '#21262d', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+          <Text style={{ color: '#8b949e', fontSize: 11, fontWeight: 'bold' }}>
             {item.created_at ? new Date(item.created_at).toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit' }) : ''}
           </Text>
         </View>
@@ -79,7 +79,7 @@ export default function LogScreen() {
   };
 
   const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-    <View style={{ backgroundColor: '#21262d', paddingVertical: 8, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: '#30363d', borderBottomWidth: 1, borderBottomColor: '#30363d' }}>
+    <View style={{ backgroundColor: '#21262d', paddingVertical: 8, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: '#30363d', borderBottomWidth: 1, borderBottomColor: '#30363d', alignItems: 'flex-end' }}>
       <Text style={{ color: '#d4a843', fontWeight: 'bold', fontSize: 13 }}>
         {formatDateLong(title)}
       </Text>
@@ -88,7 +88,7 @@ export default function LogScreen() {
 
   return (
     <PageContainer noPadding>
-      <View style={{ paddingTop: 32, paddingHorizontal: 16, marginBottom: 16 }}>
+      <View style={{ paddingTop: 32, paddingHorizontal: 16, marginBottom: 16, alignItems: 'flex-end' }}>
         <Text style={{ color: '#f0c96b', fontSize: 22, fontWeight: 'bold', marginBottom: 4 }}>سجل الإنجازات</Text>
         <Text style={{ color: '#8b949e', fontSize: 13 }}>تاريخ الحفظ والمراجعة</Text>
       </View>

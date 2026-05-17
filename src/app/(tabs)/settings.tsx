@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/Select';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { TOTAL_EIGHTHS, UNIT_OPTIONS, eighthsToLabel, EIGHTHS_PER_HIZB } from '@/core/domain/hizbMath';
 import { DAY_NAMES_AR } from '@/core/domain/dateHelpers';
+import { Ionicons } from '@expo/vector-icons';
 
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
 
@@ -44,13 +45,13 @@ export default function SettingsScreen() {
   return (
     <PageContainer>
       {/* Header */}
-      <View style={{ marginBottom: 24 }}>
+      <View style={{ marginBottom: 24, alignItems: 'flex-end' }}>
         <Text style={{ color: '#f0c96b', fontSize: 22, fontWeight: 'bold', marginBottom: 4 }}>الإعدادات</Text>
-        <Text style={{ color: '#8b949e', fontSize: 13 }}>إدارة الخطة وتحديث بيانات المحفوظ</Text>
+        <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right' }}>إدارة الخطة وتحديث بيانات المحفوظ</Text>
       </View>
 
       {/* Plan Settings */}
-      <Card title="⚙️ إعدادات الخطة">
+      <Card title="إعدادات الخطة" icon={<Ionicons name="options-outline" size={20} color="#d4a843" />}>
         <View style={{ marginBottom: 20 }}>
           <Text style={label}>يوم الاستظهار الأسبوعي:</Text>
           <Select selectedValue={izharDay} onValueChange={setIzharDay} options={DAY_OPTIONS} />
@@ -69,9 +70,9 @@ export default function SettingsScreen() {
       </Card>
 
       {/* Current Status */}
-      <Card title="📊 الوضع الحالي">
+      <Card title="الوضع الحالي" icon={<Ionicons name="stats-chart-outline" size={20} color="#d4a843" />}>
         <View style={{ backgroundColor: '#21262d', borderWidth: 1, borderColor: '#30363d', borderRadius: 10, padding: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 8 }}>
             <Text style={label}>إجمالي المحفوظ</Text>
             <Text style={{ color: '#f0c96b', fontWeight: 'bold' }}>
               {memorizedEighths === 0
@@ -80,7 +81,7 @@ export default function SettingsScreen() {
               }
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between' }}>
             <Text style={label}>بالأثمان</Text>
             <Text style={{ color: '#c9d1d9', fontSize: 13 }}>{memorizedEighths} / {TOTAL_EIGHTHS} ({pct}%)</Text>
           </View>
@@ -88,12 +89,12 @@ export default function SettingsScreen() {
       </Card>
 
       {/* Set Total */}
-      <Card title="✏️ ضبط الإجمالي">
-        <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 4 }}>
+      <Card title="ضبط الإجمالي" icon={<Ionicons name="create-outline" size={20} color="#d4a843" />}>
+        <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 4, textAlign: 'right' }}>
           💡 كل حزب = 8 أثمان. مثال: 16 ثمن = 2 حزب كاملان
         </Text>
         <Text style={[label, { marginTop: 12, marginBottom: 8 }]}>أدخل الإجمالي الجديد (بالأثمان):</Text>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flexDirection: 'row-reverse', gap: 10 }}>
           <TextInput
             style={{
               flex: 1,
@@ -130,9 +131,9 @@ export default function SettingsScreen() {
       </Card>
 
       {/* Add memorization */}
-      <Card title="➕ إضافة حفظ جديد">
+      <Card title="إضافة حفظ جديد" icon={<Ionicons name="add-circle-outline" size={20} color="#d4a843" />}>
         <Text style={[label, { marginBottom: 8 }]}>اختر المقدار وانقر إضافة:</Text>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flexDirection: 'row-reverse', gap: 10 }}>
           <View style={{ flex: 1 }}>
             <Select selectedValue={addAmt} onValueChange={setAddAmt} options={UNIT_OPTIONS} />
           </View>
@@ -143,7 +144,7 @@ export default function SettingsScreen() {
             <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>+ أضف</Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ color: '#8b949e', fontSize: 12, marginTop: 8 }}>
+        <Text style={{ color: '#8b949e', fontSize: 12, marginTop: 8, textAlign: 'right' }}>
           ستضيف {eighthsToLabel(addAmt)} إلى المجموع الحالي ({eighthsToLabel(memorizedEighths)}).
         </Text>
       </Card>
@@ -151,4 +152,4 @@ export default function SettingsScreen() {
   );
 }
 
-const label: object = { color: '#8b949e', fontSize: 13, marginBottom: 6 };
+const label: object = { color: '#8b949e', fontSize: 13, marginBottom: 6, textAlign: 'right' };

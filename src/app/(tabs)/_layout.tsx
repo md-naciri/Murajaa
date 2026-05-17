@@ -18,30 +18,16 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="settings"
         options={{
-          title: 'اليوم',
-          tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={TAB_ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="week"
-        options={{
-          title: 'الأسبوع',
-          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={TAB_ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="review"
-        options={{
-          title: 'المراجعة',
-          tabBarIcon: ({ color }) => <Ionicons name="sync-outline" size={TAB_ICON_SIZE} color={color} />,
+          title: 'إعدادات',
+          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={TAB_ICON_SIZE} color={color} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
-          title: 'خريطة',
+          title: 'الخريطة',
           tabBarIcon: ({ color }) => <Ionicons name="map-outline" size={TAB_ICON_SIZE} color={color} />,
         }}
       />
@@ -53,10 +39,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="week"
         options={{
-          title: 'إعدادات',
-          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={TAB_ICON_SIZE} color={color} />,
+          title: 'الأسبوع',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={TAB_ICON_SIZE} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'اليوم',
+          tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={TAB_ICON_SIZE} color={color} />,
         }}
       />
     </Tabs>

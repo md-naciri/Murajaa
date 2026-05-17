@@ -12,13 +12,13 @@ export function ProgressBar({ current, total, label }: ProgressBarProps) {
 
   return (
     <View className="my-2">
-      <View className="flex-row justify-between mb-1.5">
+      <View className="flex-row-reverse justify-between mb-1.5">
         <Text className="text-gray-400 text-xs">{label || 'التقدم'}</Text>
         <Text className="text-gray-400 text-xs">{current} / {total}</Text>
       </View>
-      <View className="h-2.5 bg-surface-2 rounded-full overflow-hidden border border-gray-800">
+      <View className="h-2.5 bg-surface-2 rounded-full overflow-hidden border border-gray-800 relative">
         <View 
-          className="h-full bg-gold rounded-full" 
+          className="h-full bg-gold rounded-full absolute right-0" 
           style={{ width: `${percentage}%` }}
         />
       </View>

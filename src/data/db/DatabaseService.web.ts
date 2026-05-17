@@ -3,6 +3,7 @@ export interface HifzLog {
   date: string; // YYYY-MM-DD
   task_type: 'izhar' | 'review';
   eighths_amount: number;
+  range_string?: string;
   created_at?: string;
 }
 
@@ -31,13 +32,14 @@ class DBServiceWeb {
     return Promise.resolve();
   }
 
-  async addLog(date: string, taskType: 'izhar' | 'review', eighthsAmount: number): Promise<void> {
+  async addLog(date: string, taskType: 'izhar' | 'review', eighthsAmount: number, rangeString?: string): Promise<void> {
     const logs = this.getWebLogs();
     logs.push({
       id: Date.now().toString(),
       date,
       task_type: taskType,
       eighths_amount: eighthsAmount,
+      range_string: rangeString,
       created_at: new Date().toISOString()
     });
     this.saveWebLogs(logs);

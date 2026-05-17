@@ -45,6 +45,27 @@ export function absEighthLabel(absIdx: number): string {
   return `الثمن ${eighthName(eighthIdx)} من الحزب ${hizbNum}`;
 }
 
+export function formatEighthsRange(eighths: number[]): string {
+  if (!eighths || eighths.length === 0) return '—';
+  if (eighths.length === 1) return absEighthLabel(eighths[0]);
+
+  // Check if continuous
+  let isContinuous = true;
+  for (let i = 1; i < eighths.length; i++) {
+    // If next eighth is not exactly previous + 1 (handling potential edge cases)
+    if (eighths[i] !== eighths[i - 1] + 1) {
+      isContinuous = false;
+      break;
+    }
+  }
+
+  if (isContinuous) {
+    return `من ${absEighthLabel(eighths[0])} إلى ${absEighthLabel(eighths[eighths.length - 1])}`;
+  }
+
+  return eighths.map(e => absEighthLabel(e)).join(' · ');
+}
+
 export function calcDailyReview(totalEighths: number): number {
   if (totalEighths <= 0) return 0;
   return Math.max(1, Math.ceil(totalEighths / 7));

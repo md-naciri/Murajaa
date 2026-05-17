@@ -7,7 +7,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { DatabaseService, HifzLog } from '@/data/db/DatabaseService';
 import {
-  eighthsToLabel, absEighthLabel, calcDailyReview,
+  eighthsToLabel, absEighthLabel, calcDailyReview, formatEighthsRange,
   TOTAL_EIGHTHS, EIGHTHS_PER_HIZB,
 } from '@/core/domain/hizbMath';
 import {
@@ -19,7 +19,6 @@ export default function TodayScreen() {
   const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
   const weeklyGoalEighths = useHifzStore(s => s.weeklyGoalEighths);
   const izharDay          = useHifzStore(s => s.izharDay);
-  const reviewCursor      = useHifzStore(s => s.reviewCursor);
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
 
   const today       = todayStr();
@@ -27,11 +26,14 @@ export default function TodayScreen() {
   const isIzharDay  = today === weekDates[0];
 
   const dailyReview   = calcDailyReview(memorizedEighths);
-  const weekSchedule  = buildWeekSchedule(memorizedEighths, reviewCursor, weekDates);
-  const todaySchedule = weekSchedule.find(d => d.date === today) ?? { eighths: [], amount: 0 };
+  const weekSchedule  = buildWeekSchedule(memorizedEighths, weekDates);
+  const todaySchedule = weekSchedule.find(d => d.date === today) ?? { eighths: [], amount: 0, isOptional: false };
 
   const izharFromIdx  = memorizedEighths;
   const izharToIdx    = Math.min(TOTAL_EIGHTHS - 1, memorizedEighths + weeklyGoalEighths - 1);
+  const izharRangeStr = izharFromIdx === izharToIdx 
+    ? absEighthLabel(izharFromIdx)
+    : `من ${absEighthLabel(izharFromIdx)} إلى ${absEighthLabel(izharToIdx)}`;
   const quranComplete = memorizedEighths >= TOTAL_EIGHTHS;
 
   const hizbCount = Math.floor(memorizedEighths / EIGHTHS_PER_HIZB);
@@ -65,7 +67,7 @@ export default function TodayScreen() {
       setCompletedIzhar(false);
     } else {
       // Check
-      await DatabaseService.addLog(today, 'izhar', weeklyGoalEighths);
+      await DatabaseService.addLog(today, 'izhar', weeklyGoalEighths, izharRangeStr);
       setCompletedIzhar(true);
       
       // Auto-increment memorized total
@@ -81,7 +83,8 @@ export default function TodayScreen() {
       setCompletedReview(false);
     } else {
       // Check
-      await DatabaseService.addLog(today, 'review', dailyReview);
+      const range = todaySchedule.isOptional ? 'مراجعة اختيارية' : formatEighthsRange(todaySchedule.eighths);
+      await DatabaseService.addLog(today, 'review', todaySchedule.amount, range);
       setCompletedReview(true);
     }
   };
@@ -94,11 +97,11 @@ export default function TodayScreen() {
         <Text style={{ color: '#f0c96b', fontSize: 22, fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>
           متابعة حفظ القرآن
         </Text>
-        <Text style={{ color: '#8b949e', fontSize: 13 }}>نظام مبني على يوم الاستظهار الأسبوعي</Text>
+        <Text style={{ color: '#8b949e', fontSize: 13 }}>نظام مبني على مراجعة المحفوظ أسبوعيا</Text>
       </View>
 
       {/* Stats Row */}
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+      <View style={{ flexDirection: 'row-reverse', gap: 10, marginBottom: 16 }}>
         <View style={statCard}>
           <Text style={statValue}>
             {hizbCount > 0 ? `${hizbCount} حزب` : '—'}
@@ -137,7 +140,7 @@ export default function TodayScreen() {
       {/* Today's Tasks */}
       <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#8a6a20', borderRadius: 16, padding: 20, marginBottom: 16 }}>
         {/* Date + badge */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <Text style={{ color: '#d4a843', fontWeight: 'bold' }}>📅 {formatDateLong(today)}</Text>
           {isIzharDay && (
             <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 }}>
@@ -154,16 +157,16 @@ export default function TodayScreen() {
               onPress={handleToggleIzhar}
               style={taskCard(completedIzhar ? 'rgba(168,85,247,0.15)' : '#21262d', completedIzhar ? 'rgba(168,85,247,0.6)' : 'rgba(168,85,247,0.3)')}
             >
-              <View style={[checkbox, completedIzhar && { backgroundColor: '#c084fc', borderColor: '#c084fc' }]}>
-                {completedIzhar && <Ionicons name="checkmark" size={16} color="#0d1117" style={{ marginTop: 1, marginLeft: 1 }} />}
-              </View>
               <View style={{ flex: 1, opacity: completedIzhar ? 0.6 : 1 }}>
-                <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
+                <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
                   ◆ استظهار الحفظ الجديد — {eighthsToLabel(weeklyGoalEighths)}
                 </Text>
-                <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
-                  {`من ${absEighthLabel(izharFromIdx)} إلى ${absEighthLabel(izharToIdx)}`}
+                <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
+                  {izharRangeStr}
                 </Text>
+              </View>
+              <View style={[checkbox, completedIzhar && { backgroundColor: '#c084fc', borderColor: '#c084fc' }]}>
+                {completedIzhar && <Ionicons name="checkmark" size={16} color="#0d1117" style={{ marginTop: 1, marginLeft: 1 }} />}
               </View>
             </TouchableOpacity>
           )}
@@ -180,21 +183,21 @@ export default function TodayScreen() {
             onPress={handleToggleReview}
             style={taskCard(completedReview ? 'rgba(46,160,67,0.15)' : '#21262d', completedReview ? '#2ea043' : '#30363d')}
           >
-            <View style={[checkbox, completedReview && { backgroundColor: '#2ea043', borderColor: '#2ea043' }]}>
-              {completedReview && <Ionicons name="checkmark" size={16} color="#fff" style={{ marginTop: 1, marginLeft: 1 }} />}
-            </View>
             <View style={{ flex: 1, opacity: completedReview ? 0.6 : 1 }}>
-              <Text style={{ color: completedReview ? '#2ea043' : '#8b949e', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textDecorationLine: completedReview ? 'line-through' : 'none' }}>
-                🔁 المراجعة اليومية — {eighthsToLabel(dailyReview)}
+              <Text style={{ color: completedReview ? '#2ea043' : '#8b949e', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textAlign: 'right', textDecorationLine: completedReview ? 'line-through' : 'none' }}>
+                🔁 المراجعة اليومية — {todaySchedule.isOptional ? 'اختياري' : eighthsToLabel(todaySchedule.amount)}
               </Text>
-              <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textDecorationLine: completedReview ? 'line-through' : 'none' }}>
+              <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: completedReview ? 'line-through' : 'none' }}>
                 {memorizedEighths === 0
                   ? 'لا يوجد محفوظ بعد'
-                  : todaySchedule.eighths.length > 0
-                    ? todaySchedule.eighths.map(e => absEighthLabel(e)).join(' · ')
-                    : '—'
+                  : todaySchedule.isOptional 
+                    ? 'مراجعة اختيارية' 
+                    : formatEighthsRange(todaySchedule.eighths)
                 }
               </Text>
+            </View>
+            <View style={[checkbox, completedReview && { backgroundColor: '#2ea043', borderColor: '#2ea043' }]}>
+              {completedReview && <Ionicons name="checkmark" size={16} color="#fff" style={{ marginTop: 1, marginLeft: 1 }} />}
             </View>
           </TouchableOpacity>
         </View>

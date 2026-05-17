@@ -5,6 +5,7 @@ export interface HifzLog {
   date: string; // YYYY-MM-DD
   task_type: 'izhar' | 'review';
   eighths_amount: number;
+  range_string?: string;
   created_at?: string;
 }
 
@@ -18,20 +19,28 @@ class DBServiceNative {
           date TEXT NOT NULL,
           task_type TEXT NOT NULL,
           eighths_amount INTEGER NOT NULL,
+          range_string TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
+
+      // Migration: Add range_string if missing (for existing users)
+      try {
+        await db.execAsync(`ALTER TABLE hifz_log ADD COLUMN range_string TEXT;`);
+      } catch (e) {
+        // Ignore error if column already exists
+      }
     } catch (error) {
       console.error('SQLite init error:', error);
     }
   }
 
-  async addLog(date: string, taskType: 'izhar' | 'review', eighthsAmount: number): Promise<void> {
+  async addLog(date: string, taskType: 'izhar' | 'review', eighthsAmount: number, rangeString?: string): Promise<void> {
     try {
       const db = await SQLite.openDatabaseAsync('murajaa.db');
       await db.runAsync(
-        'INSERT INTO hifz_log (date, task_type, eighths_amount) VALUES (?, ?, ?)',
-        date, taskType, eighthsAmount
+        'INSERT INTO hifz_log (date, task_type, eighths_amount, range_string) VALUES (?, ?, ?, ?)',
+        date, taskType, eighthsAmount, rangeString || null
       );
     } catch (error) {
       console.error('SQLite insert error:', error);

@@ -52,22 +52,32 @@ export interface DaySchedule {
   date: string;
   eighths: number[];
   amount: number;
+  isOptional: boolean;
 }
 
-export function buildWeekSchedule(totalEighths: number, reviewCursor: number, weekDates: string[]): DaySchedule[] {
+export function buildWeekSchedule(totalEighths: number, weekDates: string[]): DaySchedule[] {
   const daily = calcDailyReview(totalEighths);
 
   if (totalEighths === 0) {
-    return weekDates.map(date => ({ date, eighths: [], amount: 0 }));
+    return weekDates.map(date => ({ date, eighths: [], amount: 0, isOptional: false }));
   }
 
-  let cursor = reviewCursor % totalEighths;
+  let currentEighth = 0;
   return weekDates.map(date => {
     const dayEighths: number[] = [];
     for (let e = 0; e < daily; e++) {
-      dayEighths.push(cursor % totalEighths);
-      cursor = (cursor + 1) % totalEighths;
+      if (currentEighth < totalEighths) {
+        dayEighths.push(currentEighth);
+        currentEighth++;
+      }
     }
-    return { date, eighths: dayEighths, amount: daily };
+    
+    const amount = dayEighths.length;
+    return { 
+      date, 
+      eighths: dayEighths, 
+      amount,
+      isOptional: amount === 0 
+    };
   });
 }
