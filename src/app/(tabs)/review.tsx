@@ -1,10 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { PageContainer } from '@/components/ui/PageContainer';
 
 export default function ReviewScreen() {
   return (
-    <View className="flex-1 bg-[#0d1117] items-center justify-center">
-      <Text className="text-gold">شاشة المراجعة (قريباً)</Text>
-    </View>
+    <PageContainer>
+      <View className="items-center justify-center py-20">
+        <Text className="text-[#d4a843] text-lg font-bold mb-2">المراجعة</Text>
+        <Text className="text-gray-500 text-sm">هذه الشاشة قيد التطوير</Text>
+      </View>
+    </PageContainer>
   );
 }
