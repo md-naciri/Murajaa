@@ -12,8 +12,17 @@ import {
   TOTAL_EIGHTHS, EIGHTHS_PER_HIZB,
 } from '@/core/domain/hizbMath';
 import {
-  todayStr, formatDateLong, getWeekDates, buildWeekSchedule, DAY_NAMES_AR,
+  todayStr, formatDateLong, getWeekDates, buildWeekSchedule, DAY_NAMES_AR, getAppDate, dateToStr, formatDateShort
 } from '@/core/domain/dateHelpers';
+
+export interface MissedTask {
+  id: string;
+  date: string;
+  type: 'izhar' | 'review';
+  amount: number;
+  rangeStr: string;
+  isCompleted: boolean;
+}
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TodayScreen() {
@@ -21,6 +30,8 @@ export default function TodayScreen() {
   const weeklyGoalEighths = useHifzStore(s => s.weeklyGoalEighths);
   const izharDay          = useHifzStore(s => s.izharDay);
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
+  const appStartDate = useHifzStore(s => s.appStartDate);
+  const setAppStartDate = useHifzStore(s => s.setAppStartDate);
   const devDateOffset = useHifzStore(s => s.devDateOffset); // Force re-render on time travel
 
   const today       = todayStr(devDateOffset);
@@ -42,29 +53,122 @@ export default function TodayScreen() {
   const [completedIzhar, setCompletedIzhar] = useState(false);
   const [completedReview, setCompletedReview] = useState(false);
 
-  // If Izhar is marked done, the store has already incremented, so we shift the index back to display what was actually completed.
-  const izharBaseIdx  = completedIzhar ? Math.max(0, memorizedEighths - weeklyGoalEighths) : memorizedEighths;
-  const izharFromIdx  = izharBaseIdx;
-  const izharToIdx    = Math.min(TOTAL_EIGHTHS - 1, izharBaseIdx + weeklyGoalEighths - 1);
-  const izharRangeStr = izharFromIdx === izharToIdx 
-    ? absEighthLabel(izharFromIdx)
-    : `من ${absEighthLabel(izharFromIdx)} إلى ${absEighthLabel(izharToIdx)}`;
+  const getIzharRangeStr = (baseIdx: number) => {
+    const toIdx = Math.min(TOTAL_EIGHTHS - 1, baseIdx + weeklyGoalEighths - 1);
+    return baseIdx === toIdx 
+      ? absEighthLabel(baseIdx)
+      : `من ${absEighthLabel(baseIdx)} إلى ${absEighthLabel(toIdx)}`;
+  };
 
-  // Load today's logs whenever this screen comes into focus
+  const izharBaseIdx  = completedIzhar ? Math.max(0, memorizedEighths - weeklyGoalEighths) : memorizedEighths;
+  const izharRangeStr = getIzharRangeStr(izharBaseIdx);
+
+  const [missedTasks, setMissedTasks] = useState<MissedTask[]>([]);
+  const [completedMissedIds, setCompletedMissedIds] = useState<Set<string>>(new Set());
+
+  // Initialize app start date if missing
+  useEffect(() => {
+    if (!appStartDate) {
+      setAppStartDate(todayStr(0)); // Record the real life today
+    }
+  }, [appStartDate]);
+
+  // Load today's and past logs whenever this screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       let isActive = true;
       const fetchLogs = async () => {
-        const logs = await DatabaseService.getLogsForDate(today);
-        if (isActive) {
-          setCompletedIzhar(logs.some(l => l.task_type === 'izhar'));
-          setCompletedReview(logs.some(l => l.task_type === 'review'));
+        const logs = await DatabaseService.getAllLogs();
+        if (!isActive) return;
+
+        // 1. Today's status
+        const todayLogs = logs.filter(l => l.date === today);
+        setCompletedIzhar(todayLogs.some(l => l.task_type === 'izhar'));
+        setCompletedReview(todayLogs.some(l => l.task_type === 'review'));
+
+        // 2. Missed tasks for the last 7 days
+        const computedMissed: MissedTask[] = [];
+        const currentWeek = getWeekDates(izharDay, devDateOffset);
+        const previousWeek = getWeekDates(izharDay, devDateOffset - 7);
+        const allSchedules = [
+          ...buildWeekSchedule(memorizedEighths, previousWeek),
+          ...buildWeekSchedule(memorizedEighths, currentWeek)
+        ];
+
+        for (let i = 1; i <= 7; i++) {
+          const pastDateObj = new Date(getAppDate(devDateOffset));
+          pastDateObj.setDate(pastDateObj.getDate() - i);
+          const pastDateStr = dateToStr(pastDateObj);
+
+          if (appStartDate && pastDateStr < appStartDate) {
+            continue; // Don't show overdue tasks from before the app was installed
+          }
+
+          const daySchedule = allSchedules.find(s => s.date === pastDateStr);
+          if (!daySchedule) continue;
+
+          const logsForPastDay = logs.filter(l => l.date === pastDateStr);
+
+          // Check Izhar
+          const isIzharDayPast = pastDateObj.getDay() === izharDay;
+          if (isIzharDayPast && !quranComplete) {
+            const isCompleted = logsForPastDay.some(l => l.task_type === 'izhar');
+            const taskId = `${pastDateStr}-izhar`;
+            
+            if (!isCompleted || completedMissedIds.has(taskId)) {
+              computedMissed.push({
+                id: taskId,
+                date: pastDateStr,
+                type: 'izhar',
+                amount: weeklyGoalEighths,
+                rangeStr: getIzharRangeStr(memorizedEighths),
+                isCompleted
+              });
+            }
+          }
+
+          // Check Review
+          if (!daySchedule.isOptional && memorizedEighths > 0) {
+            const isCompleted = logsForPastDay.some(l => l.task_type === 'review');
+            const taskId = `${pastDateStr}-review`;
+            
+            if (!isCompleted || completedMissedIds.has(taskId)) {
+              computedMissed.push({
+                id: taskId,
+                date: pastDateStr,
+                type: 'review',
+                amount: daySchedule.amount,
+                rangeStr: formatEighthsRange(daySchedule.eighths),
+                isCompleted
+              });
+            }
+          }
         }
+        
+        // Sort oldest to newest
+        setMissedTasks(computedMissed.sort((a, b) => a.date.localeCompare(b.date)));
       };
       fetchLogs();
       return () => { isActive = false; };
-    }, [today])
+    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, devDateOffset, quranComplete])
   );
+
+  const handleToggleMissed = async (task: MissedTask) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    
+    if (task.isCompleted) {
+      // Uncheck
+      await DatabaseService.removeLog(task.date, task.type);
+      if (task.type === 'izhar') addMemorizedEighths(-weeklyGoalEighths);
+      setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: false } : t));
+    } else {
+      // Check
+      await DatabaseService.addLog(task.date, task.type, task.amount, task.rangeStr);
+      if (task.type === 'izhar') addMemorizedEighths(weeklyGoalEighths);
+      setCompletedMissedIds(prev => new Set(prev).add(task.id));
+      setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: true } : t));
+    }
+  };
 
   const handleToggleIzhar = async () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -140,8 +244,12 @@ export default function TodayScreen() {
       {/* No-data prompt */}
       {memorizedEighths === 0 && (
         <View style={{ backgroundColor: 'rgba(138,106,32,0.1)', borderWidth: 1, borderColor: '#8a6a20', padding: 14, borderRadius: 12, marginBottom: 16 }}>
-          <Text style={{ color: '#f0c96b', fontSize: 13, textAlign: 'center', lineHeight: 22 }}>
-            🌟 ابدأ بضبط إعداداتك من تبويب الإعدادات وتحديد ما حفظته حتى الآن.
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <Ionicons name="sparkles" size={16} color="#f0c96b" />
+            <Text style={{ color: '#f0c96b', fontSize: 13, fontWeight: 'bold' }}>مرحباً بك في مراجعة</Text>
+          </View>
+          <Text style={{ color: '#f0c96b', fontSize: 13, lineHeight: 22, textAlign: 'right' }}>
+            ابدأ بضبط إعداداتك من تبويب الإعدادات وتحديد ما حفظته حتى الآن.
           </Text>
         </View>
       )}
@@ -150,15 +258,44 @@ export default function TodayScreen() {
       <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#8a6a20', borderRadius: 16, padding: 20, marginBottom: 16 }}>
         {/* Date + badge */}
         <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <Text style={{ color: '#d4a843', fontWeight: 'bold' }}>📅 {formatDateLong(today)}</Text>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="calendar" size={18} color="#d4a843" />
+            <Text style={{ color: '#d4a843', fontWeight: 'bold' }}>{formatDateLong(today)}</Text>
+          </View>
           {isIzharDay && (
-            <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 }}>
-              <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold' }}>◆ يوم الاستظهار</Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+              <Ionicons name="sparkles" size={12} color="#c084fc" />
+              <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold' }}>يوم الاستظهار</Text>
             </View>
           )}
         </View>
 
         <View style={{ gap: 12 }}>
+          {/* Missed Tasks (Last 7 Days) */}
+          {missedTasks.map((task) => (
+            <TouchableOpacity 
+              key={task.id}
+              activeOpacity={0.7}
+              onPress={() => handleToggleMissed(task)}
+              style={taskCard(task.isCompleted ? 'rgba(248,113,113,0.02)' : 'rgba(248,113,113,0.05)', task.isCompleted ? 'rgba(248,113,113,0.1)' : 'rgba(248,113,113,0.3)')}
+            >
+              <View style={{ flex: 1, opacity: task.isCompleted ? 0.6 : 1 }}>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Ionicons name={task.type === 'izhar' ? 'book-outline' : 'sync-outline'} size={14} color="#f87171" />
+                  <Text style={{ color: '#f87171', fontSize: 11, fontWeight: 'bold', textAlign: 'right', textDecorationLine: task.isCompleted ? 'line-through' : 'none' }}>
+                    {task.type === 'izhar' ? 'استظهار متأخر' : 'مراجعة متأخرة'} — {eighthsToLabel(task.amount)} ({formatDateShort(task.date)})
+                  </Text>
+                </View>
+                <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: task.isCompleted ? 'line-through' : 'none' }}>
+                  {task.rangeStr}
+                </Text>
+              </View>
+              <View style={[checkbox, { borderColor: '#f87171' }, task.isCompleted && { backgroundColor: '#f87171' }]}>
+                {task.isCompleted && <Ionicons name="checkmark" size={16} color="#0d1117" style={{ marginTop: 1, marginLeft: 1 }} />}
+              </View>
+            </TouchableOpacity>
+          ))}
+
           {/* Izhar task */}
           {isIzharDay && !quranComplete && (
             <TouchableOpacity 
@@ -167,9 +304,12 @@ export default function TodayScreen() {
               style={taskCard(completedIzhar ? 'rgba(168,85,247,0.15)' : '#21262d', completedIzhar ? 'rgba(168,85,247,0.6)' : 'rgba(168,85,247,0.3)')}
             >
               <View style={{ flex: 1, opacity: completedIzhar ? 0.6 : 1 }}>
-                <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
-                  ◆ استظهار الحفظ الجديد — {eighthsToLabel(weeklyGoalEighths)}
-                </Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Ionicons name="book" size={14} color="#c084fc" />
+                  <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
+                    استظهار الحفظ الجديد — {eighthsToLabel(weeklyGoalEighths)}
+                  </Text>
+                </View>
                 <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
                   {izharRangeStr}
                 </Text>
@@ -182,7 +322,10 @@ export default function TodayScreen() {
 
           {isIzharDay && quranComplete && (
             <View style={{ backgroundColor: '#21262d', borderWidth: 1, borderColor: 'rgba(234,179,8,0.4)', borderRadius: 12, padding: 16 }}>
-              <Text style={{ color: '#f0c96b', textAlign: 'center', fontWeight: 'bold' }}>🎉 القرآن محفوظ بالكامل — مبارك!</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Ionicons name="trophy" size={18} color="#f0c96b" />
+                <Text style={{ color: '#f0c96b', textAlign: 'center', fontWeight: 'bold' }}>القرآن محفوظ بالكامل — مبارك!</Text>
+              </View>
             </View>
           )}
 
@@ -193,9 +336,12 @@ export default function TodayScreen() {
             style={taskCard(completedReview ? 'rgba(46,160,67,0.15)' : '#21262d', completedReview ? '#2ea043' : '#30363d')}
           >
             <View style={{ flex: 1, opacity: completedReview ? 0.6 : 1 }}>
-              <Text style={{ color: completedReview ? '#2ea043' : '#8b949e', fontSize: 11, fontWeight: 'bold', marginBottom: 4, textAlign: 'right', textDecorationLine: completedReview ? 'line-through' : 'none' }}>
-                🔁 المراجعة اليومية — {todaySchedule.isOptional ? 'اختياري' : eighthsToLabel(todaySchedule.amount)}
-              </Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Ionicons name="sync" size={14} color={completedReview ? '#2ea043' : '#8b949e'} />
+                <Text style={{ color: completedReview ? '#2ea043' : '#8b949e', fontSize: 11, fontWeight: 'bold', textAlign: 'right', textDecorationLine: completedReview ? 'line-through' : 'none' }}>
+                  المراجعة اليومية — {todaySchedule.isOptional ? 'اختياري' : eighthsToLabel(todaySchedule.amount)}
+                </Text>
+              </View>
               <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: completedReview ? 'line-through' : 'none' }}>
                 {memorizedEighths === 0
                   ? 'لا يوجد محفوظ بعد'
