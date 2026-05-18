@@ -7,7 +7,6 @@ export interface HifzState {
   izharDay: number; // 0-6 (Sunday-Saturday)
   hasCompletedOnboarding: boolean;
   _hasHydrated: boolean; // Flag to indicate if initial load from storage is done
-  devDateOffset: number; // For development testing: shift the app's current date
   appStartDate: string | null; // The date the app was first setup
 }
 
@@ -18,7 +17,6 @@ export interface HifzActions {
   addMemorizedEighths: (amount: number) => void;
   completeOnboarding: () => void;
   _setHydrated: (state: Partial<HifzState>) => void;
-  setDevDateOffset: (offset: number) => void;
   setAppStartDate: (dateStr: string) => void;
 }
 
@@ -28,7 +26,6 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   izharDay: 4, // Thursday default
   hasCompletedOnboarding: false,
   _hasHydrated: false,
-  devDateOffset: 0,
   appStartDate: null,
 
   setMemorizedEighths: (amount) => set({ memorizedEighths: amount }),
@@ -39,7 +36,6 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   })),
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
   _setHydrated: (persistedState) => set({ ...persistedState, _hasHydrated: true }),
-  setDevDateOffset: (offset) => set({ devDateOffset: offset }),
   setAppStartDate: (dateStr) => set({ appStartDate: dateStr }),
 }));
 

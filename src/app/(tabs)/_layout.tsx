@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { View, ActivityIndicator } from 'react-native';
-import { DevTimeTravel } from '@/components/dev/DevTimeTravel';
 
 const TAB_ICON_SIZE = 24;
 
@@ -73,7 +72,6 @@ export default function TabLayout() {
         }}
       />
       </Tabs>
-      {__DEV__ && <DevTimeTravel />}
     </View>
   );
 }

@@ -32,10 +32,9 @@ export default function TodayScreen() {
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
   const appStartDate = useHifzStore(s => s.appStartDate);
   const setAppStartDate = useHifzStore(s => s.setAppStartDate);
-  const devDateOffset = useHifzStore(s => s.devDateOffset); // Force re-render on time travel
 
-  const today       = todayStr(devDateOffset);
-  const weekDates   = getWeekDates(izharDay, devDateOffset);
+  const today       = todayStr(0);
+  const weekDates   = getWeekDates(izharDay, 0);
   const isIzharDay  = today === weekDates[0];
 
   const dailyReview   = calcDailyReview(memorizedEighths);
@@ -96,15 +95,15 @@ export default function TodayScreen() {
 
         // 2. Missed tasks for the last 7 days
         const computedMissed: MissedTask[] = [];
-        const currentWeek = getWeekDates(izharDay, devDateOffset);
-        const previousWeek = getWeekDates(izharDay, devDateOffset - 7);
+        const currentWeek = getWeekDates(izharDay, 0);
+        const previousWeek = getWeekDates(izharDay, -7);
         const allSchedules = [
           ...buildWeekSchedule(memorizedEighths, previousWeek),
           ...buildWeekSchedule(memorizedEighths, currentWeek)
         ];
 
         for (let i = 1; i <= 7; i++) {
-          const pastDateObj = new Date(getAppDate(devDateOffset));
+          const pastDateObj = new Date(getAppDate(0));
           pastDateObj.setDate(pastDateObj.getDate() - i);
           const pastDateStr = dateToStr(pastDateObj);
 
@@ -158,7 +157,7 @@ export default function TodayScreen() {
       };
       fetchLogs();
       return () => { isActive = false; };
-    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, devDateOffset, quranComplete, appStartDate])
+    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, quranComplete, appStartDate])
   );
 
   const handleToggleMissed = async (task: MissedTask) => {
@@ -212,7 +211,7 @@ export default function TodayScreen() {
   };
 
   return (
-    <PageContainer key={`today-${devDateOffset}`}>
+    <PageContainer>
       {/* Header */}
       <View style={{ alignItems: 'center', marginBottom: 32 }}>
         <Ionicons name="book-outline" size={44} color="#d4a843" />

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View,  TextInput, TouchableOpacity, Modal } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Card } from '@/components/ui/Card';
@@ -12,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  
   // Individual selectors for React 19 Compiler compatibility
   const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
   const weeklyGoalEighths = useHifzStore(s => s.weeklyGoalEighths);
@@ -82,6 +85,20 @@ export default function SettingsScreen() {
         >
           <Ionicons name="create-outline" size={18} color="#e6edf3" />
           <Text style={{ color: '#e6edf3', fontWeight: 'bold', fontSize: 15 }}>تعديل المحفوظ</Text>
+        </TouchableOpacity>
+      </Card>
+
+      {/* About App */}
+      <Card title="حول" icon={<Ionicons name="information-circle-outline" size={20} color="#d4a843" />}>
+        <TouchableOpacity
+          onPress={() => router.push('/about')}
+          style={{ backgroundColor: '#21262d', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: '#30363d', flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}
+        >
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="phone-portrait-outline" size={20} color="#e6edf3" />
+            <Text style={{ color: '#e6edf3', fontSize: 15, fontWeight: 'bold' }}>حول التطبيق</Text>
+          </View>
+          <Ionicons name="chevron-back" size={20} color="#8b949e" />
         </TouchableOpacity>
       </Card>
 

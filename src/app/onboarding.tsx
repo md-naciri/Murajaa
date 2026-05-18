@@ -26,7 +26,6 @@ export default function OnboardingScreen() {
   const setStoreIzharDay = useHifzStore(s => s.setIzharDay);
   const completeOnboarding = useHifzStore(s => s.completeOnboarding);
   const setAppStartDate = useHifzStore(s => s.setAppStartDate);
-  const devDateOffset = useHifzStore(s => s.devDateOffset);
 
   const handleStart = () => {
     // Validate memorized input
@@ -38,7 +37,7 @@ export default function OnboardingScreen() {
     setMemorizedEighths(memVal);
     setStoreWeeklyGoal(weeklyGoal);
     setStoreIzharDay(izharDay);
-    setAppStartDate(todayStr(devDateOffset));
+    setAppStartDate(todayStr(0));
     
     // Mark onboarding complete and navigate to app
     completeOnboarding();
