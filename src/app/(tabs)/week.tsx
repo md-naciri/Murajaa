@@ -11,13 +11,14 @@ import { Ionicons } from '@expo/vector-icons';
 export default function WeekScreen() {
   const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
   const izharDay          = useHifzStore(s => s.izharDay);
+  const devDateOffset     = useHifzStore(s => s.devDateOffset); // Force re-render on time travel
 
-  const today = todayStr();
-  const weekDates = getWeekDates(izharDay);
+  const today = todayStr(devDateOffset);
+  const weekDates = getWeekDates(izharDay, devDateOffset);
   const weekSchedule = buildWeekSchedule(memorizedEighths, weekDates);
 
   return (
-    <PageContainer noPadding>
+    <PageContainer key={`week-${devDateOffset}`} noPadding>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {/* Header */}
         <View style={{ alignItems: 'center', marginBottom: 24, paddingTop: 16 }}>

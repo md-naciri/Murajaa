@@ -1,7 +1,7 @@
 import '../global.css';
 
 import React, { useEffect } from 'react';
-import { UIManager, Platform, StyleSheet } from 'react-native';
+import { UIManager, Platform, StyleSheet, View } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 
@@ -40,14 +40,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={DarkTheme}>
+      <View style={{ flex: 1, backgroundColor: '#0d1117' }}>
+        <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ presentation: 'modal' }} />
+        </Stack>
+      </View>
       <StatusBar style="light" />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
     </ThemeProvider>
   );
 }
-
-

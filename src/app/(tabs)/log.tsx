@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View,  SectionList, RefreshControl } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useFocusEffect } from 'expo-router';
+import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Ionicons } from '@expo/vector-icons';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { DatabaseService, HifzLog } from '@/data/db/DatabaseService';
@@ -17,6 +18,7 @@ export default function LogScreen() {
   const [logs, setLogs] = useState<LogGroup[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const devDateOffset = useHifzStore(s => s.devDateOffset);
 
   const fetchLogs = async () => {
     const rawLogs = await DatabaseService.getAllLogs();
@@ -46,7 +48,7 @@ export default function LogScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchLogs();
-    }, [])
+    }, [devDateOffset])
   );
 
   const onRefresh = async () => {
@@ -92,7 +94,7 @@ export default function LogScreen() {
   );
 
   return (
-    <PageContainer noScroll noPadding>
+    <PageContainer key={`log-${devDateOffset}`} noScroll noPadding>
       <View style={{ paddingTop: 32, paddingHorizontal: 16, marginBottom: 16, alignItems: 'flex-end' }}>
         <Text style={{ color: '#f0c96b', fontSize: 22, fontWeight: 'bold', marginBottom: 4 }}>سجل الإنجازات</Text>
         <Text style={{ color: '#8b949e', fontSize: 13 }}>تاريخ الحفظ والمراجعة</Text>

@@ -21,9 +21,10 @@ export default function TodayScreen() {
   const weeklyGoalEighths = useHifzStore(s => s.weeklyGoalEighths);
   const izharDay          = useHifzStore(s => s.izharDay);
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
+  const devDateOffset = useHifzStore(s => s.devDateOffset); // Force re-render on time travel
 
-  const today       = todayStr();
-  const weekDates   = getWeekDates(izharDay);
+  const today       = todayStr(devDateOffset);
+  const weekDates   = getWeekDates(izharDay, devDateOffset);
   const isIzharDay  = today === weekDates[0];
 
   const dailyReview   = calcDailyReview(memorizedEighths);
@@ -98,7 +99,7 @@ export default function TodayScreen() {
   };
 
   return (
-    <PageContainer>
+    <PageContainer key={`today-${devDateOffset}`}>
       {/* Header */}
       <View style={{ alignItems: 'center', marginBottom: 32 }}>
         <Ionicons name="book-outline" size={44} color="#d4a843" />

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { View, ActivityIndicator } from 'react-native';
+import { DevTimeTravel } from '@/components/dev/DevTimeTravel';
 
 const TAB_ICON_SIZE = 24;
 
@@ -24,7 +25,8 @@ export default function TabLayout() {
   }
 
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#d4a843',
@@ -70,6 +72,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={TAB_ICON_SIZE} color={color} />,
         }}
       />
-    </Tabs>
+      </Tabs>
+      {__DEV__ && <DevTimeTravel />}
+    </View>
   );
 }
