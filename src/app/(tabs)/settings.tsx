@@ -120,7 +120,7 @@ export default function SettingsScreen() {
                     fontSize: 32,
                     fontWeight: 'bold',
                     textAlign: 'center',
-                    minWidth: 80,
+                    width: 100,
                     padding: 0
                   }}
                   keyboardType="numeric"

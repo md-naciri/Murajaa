@@ -27,7 +27,7 @@ export function PageContainer({ children, noPadding, noScroll, ...props }: PageC
   if (noScroll) {
     return (
       <View className="flex-1 bg-[#0d1117]" {...props}>
-        <View style={[contentStyle, { flex: 1 }]}>
+        <View style={[contentStyle, { flex: 1, alignSelf: 'center' }]}>
           {children}
         </View>
       </View>
