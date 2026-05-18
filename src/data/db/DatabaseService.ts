@@ -10,37 +10,51 @@ export interface HifzLog {
 }
 
 class DBServiceNative {
-  async initDb(): Promise<void> {
-    try {
-      const db = await SQLite.openDatabaseAsync('murajaa.db');
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS hifz_log (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          date TEXT NOT NULL,
-          task_type TEXT NOT NULL,
-          eighths_amount INTEGER NOT NULL,
-          range_string TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
+  private dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-      // Migration: Add range_string if missing (for existing users)
-      try {
-        await db.execAsync(`ALTER TABLE hifz_log ADD COLUMN range_string TEXT;`);
-      } catch (e) {
-        // Ignore error if column already exists
-      }
-    } catch (error) {
-      console.error('SQLite init error:', error);
+  private getDb(): Promise<SQLite.SQLiteDatabase> {
+    if (!this.dbPromise) {
+      this.dbPromise = (async () => {
+        try {
+          const db = await SQLite.openDatabaseAsync('murajaa.db');
+          await db.execAsync(`
+            CREATE TABLE IF NOT EXISTS hifz_log (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              date TEXT NOT NULL,
+              task_type TEXT NOT NULL,
+              eighths_amount INTEGER NOT NULL,
+              range_string TEXT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+
+          // Migration: Add range_string if missing (for existing users)
+          try {
+            await db.execAsync(`ALTER TABLE hifz_log ADD COLUMN range_string TEXT;`);
+          } catch (e) {
+            // Ignore error if column already exists
+          }
+          return db;
+        } catch (error) {
+          console.error('SQLite init error:', error);
+          throw error;
+        }
+      })();
     }
+    return this.dbPromise;
+  }
+
+  async initDb(): Promise<void> {
+    // Explicitly await the setup to ensure it finishes during startup
+    await this.getDb();
   }
 
   async addLog(date: string, taskType: 'izhar' | 'review', eighthsAmount: number, rangeString?: string): Promise<void> {
     try {
-      const db = await SQLite.openDatabaseAsync('murajaa.db');
+      const db = await this.getDb();
       await db.runAsync(
-        'INSERT INTO hifz_log (date, task_type, eighths_amount, range_string) VALUES (?, ?, ?, ?)',
-        date, taskType, eighthsAmount, rangeString || null
+        'INSERT INTO hifz_log (date, task_type, eighths_amount, range_string) VALUES ($date, $task, $amount, $range)',
+        { $date: date, $task: taskType, $amount: eighthsAmount, $range: rangeString || null }
       );
     } catch (error) {
       console.error('SQLite insert error:', error);
@@ -49,10 +63,10 @@ class DBServiceNative {
 
   async getLogsForDate(date: string): Promise<HifzLog[]> {
     try {
-      const db = await SQLite.openDatabaseAsync('murajaa.db');
+      const db = await this.getDb();
       return await db.getAllAsync<HifzLog>(
-        'SELECT * FROM hifz_log WHERE date = ? ORDER BY created_at DESC',
-        date
+        'SELECT * FROM hifz_log WHERE date = $date ORDER BY created_at DESC',
+        { $date: date }
       );
     } catch (error) {
       console.error('SQLite select error:', error);
@@ -62,7 +76,7 @@ class DBServiceNative {
 
   async getAllLogs(): Promise<HifzLog[]> {
     try {
-      const db = await SQLite.openDatabaseAsync('murajaa.db');
+      const db = await this.getDb();
       return await db.getAllAsync<HifzLog>('SELECT * FROM hifz_log ORDER BY date DESC, created_at DESC');
     } catch (error) {
       console.error('SQLite select all error:', error);
@@ -72,10 +86,10 @@ class DBServiceNative {
 
   async removeLog(date: string, taskType: 'izhar' | 'review'): Promise<void> {
     try {
-      const db = await SQLite.openDatabaseAsync('murajaa.db');
+      const db = await this.getDb();
       await db.runAsync(
-        'DELETE FROM hifz_log WHERE date = ? AND task_type = ?',
-        date, taskType
+        'DELETE FROM hifz_log WHERE date = $date AND task_type = $task',
+        { $date: date, $task: taskType }
       );
     } catch (error) {
       console.error('SQLite delete error:', error);

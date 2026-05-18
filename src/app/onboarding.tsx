@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
         <View style={{ width: 80, height: 80, backgroundColor: '#161b22', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#d4a843' }}>
           <Ionicons name="book" size={40} color="#d4a843" />
         </View>
-        <Text style={{ color: '#f0c96b', fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>أهلاً بك في مراجعة</Text>
+        <Text style={{ color: '#f0c96b', fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>Welcome to Murajaa</Text>
         <Text style={{ color: '#8b949e', fontSize: 14, textAlign: 'center', paddingHorizontal: 20, lineHeight: 22 }}>
           تطبيقك الشخصي لمتابعة وتثبيت حفظ القرآن الكريم بطريقة منهجية ومنظمة.
         </Text>

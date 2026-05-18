@@ -87,7 +87,7 @@ export default function LogScreen() {
   );
 
   return (
-    <PageContainer noPadding>
+    <PageContainer noScroll noPadding>
       <View style={{ paddingTop: 32, paddingHorizontal: 16, marginBottom: 16, alignItems: 'flex-end' }}>
         <Text style={{ color: '#f0c96b', fontSize: 22, fontWeight: 'bold', marginBottom: 4 }}>سجل الإنجازات</Text>
         <Text style={{ color: '#8b949e', fontSize: 13 }}>تاريخ الحفظ والمراجعة</Text>

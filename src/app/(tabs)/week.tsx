@@ -71,9 +71,9 @@ export default function WeekScreen() {
                   </View>
 
                   {day.isOptional ? (
-                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                      <Ionicons name="leaf-outline" size={16} color="#8b949e" />
-                      <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right' }}>
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'flex-start', gap: 6 }}>
+                      <Ionicons name="leaf-outline" size={16} color="#8b949e" style={{ marginTop: 2 }} />
+                      <Text style={{ flex: 1, color: '#8b949e', fontSize: 13, textAlign: 'right', lineHeight: 20 }}>
                         راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع)
                       </Text>
                     </View>

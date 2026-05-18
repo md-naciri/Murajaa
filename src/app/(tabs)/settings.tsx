@@ -18,6 +18,7 @@ export default function SettingsScreen() {
   const setMemorizedEighths = useHifzStore(s => s.setMemorizedEighths);
   const setWeeklyGoal       = useHifzStore(s => s.setWeeklyGoal);
   const setIzharDay         = useHifzStore(s => s.setIzharDay);
+  const setStoreMemorized = useHifzStore(s => s.setMemorizedEighths);
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
 
   // Local input — completely independent from store until user taps "حفظ"
@@ -138,7 +139,15 @@ export default function SettingsScreen() {
             <Select selectedValue={addAmt} onValueChange={setAddAmt} options={UNIT_OPTIONS} />
           </View>
           <TouchableOpacity
-            onPress={() => addMemorizedEighths(addAmt)}
+            onPress={() => {
+              const newTotal = memorizedEighths + addAmt;
+              if (newTotal > TOTAL_EIGHTHS) {
+                alert(`لا يمكن أن يتجاوز المجموع 60 حزباً. سيتم تعيينه إلى الحد الأقصى.`);
+                setStoreMemorized(TOTAL_EIGHTHS);
+              } else {
+                addMemorizedEighths(addAmt);
+              }
+            }}
             style={{ backgroundColor: '#238636', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, justifyContent: 'center' }}
           >
             <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>+ أضف</Text>
