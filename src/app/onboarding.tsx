@@ -7,7 +7,7 @@ import { PageContainer } from '@/components/ui/PageContainer';
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { TOTAL_EIGHTHS, UNIT_OPTIONS, eighthsToLabel, EIGHTHS_PER_HIZB } from '@/core/domain/hizbMath';
-import { DAY_NAMES_AR } from '@/core/domain/dateHelpers';
+import { DAY_NAMES_AR, todayStr } from '@/core/domain/dateHelpers';
 import { Ionicons } from '@expo/vector-icons';
 
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
@@ -25,6 +25,8 @@ export default function OnboardingScreen() {
   const setStoreWeeklyGoal = useHifzStore(s => s.setWeeklyGoal);
   const setStoreIzharDay = useHifzStore(s => s.setIzharDay);
   const completeOnboarding = useHifzStore(s => s.completeOnboarding);
+  const setAppStartDate = useHifzStore(s => s.setAppStartDate);
+  const devDateOffset = useHifzStore(s => s.devDateOffset);
 
   const handleStart = () => {
     // Validate memorized input
@@ -36,6 +38,7 @@ export default function OnboardingScreen() {
     setMemorizedEighths(memVal);
     setStoreWeeklyGoal(weeklyGoal);
     setStoreIzharDay(izharDay);
+    setAppStartDate(todayStr(devDateOffset));
     
     // Mark onboarding complete and navigate to app
     completeOnboarding();

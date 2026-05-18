@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View,  TouchableOpacity, Alert, LayoutAnimation } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useFocusEffect } from 'expo-router';
@@ -64,7 +64,9 @@ export default function TodayScreen() {
   const izharRangeStr = getIzharRangeStr(izharBaseIdx);
 
   const [missedTasks, setMissedTasks] = useState<MissedTask[]>([]);
-  const [completedMissedIds, setCompletedMissedIds] = useState<Set<string>>(new Set());
+  
+  const completedMissedIdsRef = useRef<Set<string>>(new Set());
+  const lastTodayRef = useRef(today);
 
   // Initialize app start date if missing
   useEffect(() => {
@@ -78,6 +80,12 @@ export default function TodayScreen() {
     React.useCallback(() => {
       let isActive = true;
       const fetchLogs = async () => {
+        // Clear the cache exactly when we run a fetch for a new simulated day
+        if (lastTodayRef.current !== today) {
+          completedMissedIdsRef.current.clear();
+          lastTodayRef.current = today;
+        }
+
         const logs = await DatabaseService.getAllLogs();
         if (!isActive) return;
 
@@ -100,7 +108,7 @@ export default function TodayScreen() {
           pastDateObj.setDate(pastDateObj.getDate() - i);
           const pastDateStr = dateToStr(pastDateObj);
 
-          if (appStartDate && pastDateStr < appStartDate) {
+          if (!appStartDate || pastDateStr < appStartDate) {
             continue; // Don't show overdue tasks from before the app was installed
           }
 
@@ -115,7 +123,7 @@ export default function TodayScreen() {
             const isCompleted = logsForPastDay.some(l => l.task_type === 'izhar');
             const taskId = `${pastDateStr}-izhar`;
             
-            if (!isCompleted || completedMissedIds.has(taskId)) {
+            if (!isCompleted || completedMissedIdsRef.current.has(taskId)) {
               computedMissed.push({
                 id: taskId,
                 date: pastDateStr,
@@ -132,7 +140,7 @@ export default function TodayScreen() {
             const isCompleted = logsForPastDay.some(l => l.task_type === 'review');
             const taskId = `${pastDateStr}-review`;
             
-            if (!isCompleted || completedMissedIds.has(taskId)) {
+            if (!isCompleted || completedMissedIdsRef.current.has(taskId)) {
               computedMissed.push({
                 id: taskId,
                 date: pastDateStr,
@@ -150,7 +158,7 @@ export default function TodayScreen() {
       };
       fetchLogs();
       return () => { isActive = false; };
-    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, devDateOffset, quranComplete])
+    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, devDateOffset, quranComplete, appStartDate])
   );
 
   const handleToggleMissed = async (task: MissedTask) => {
@@ -160,12 +168,13 @@ export default function TodayScreen() {
       // Uncheck
       await DatabaseService.removeLog(task.date, task.type);
       if (task.type === 'izhar') addMemorizedEighths(-weeklyGoalEighths);
+      completedMissedIdsRef.current.delete(task.id);
       setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: false } : t));
     } else {
       // Check
       await DatabaseService.addLog(task.date, task.type, task.amount, task.rangeStr);
       if (task.type === 'izhar') addMemorizedEighths(weeklyGoalEighths);
-      setCompletedMissedIds(prev => new Set(prev).add(task.id));
+      completedMissedIdsRef.current.add(task.id);
       setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: true } : t));
     }
   };
