@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View,  TextInput, TouchableOpacity, Image } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 import { useRouter } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { PageContainer } from '@/components/ui/PageContainer';
@@ -125,3 +126,4 @@ export default function OnboardingScreen() {
 }
 
 const label: object = { color: '#8b949e', fontSize: 13, marginBottom: 8, textAlign: 'right' };
+

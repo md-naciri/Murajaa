@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, LayoutAnimation } from 'react-native';
+import { View,  TouchableOpacity, Alert, LayoutAnimation } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 import { useFocusEffect } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Card } from '@/components/ui/Card';
@@ -147,7 +148,7 @@ export default function TodayScreen() {
       {/* Today's Tasks */}
       <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#8a6a20', borderRadius: 16, padding: 20, marginBottom: 16 }}>
         {/* Date + badge */}
-        <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <Text style={{ color: '#d4a843', fontWeight: 'bold' }}>📅 {formatDateLong(today)}</Text>
           {isIzharDay && (
             <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 }}>
@@ -263,3 +264,4 @@ function taskCard(bg: string, border: string): object {
     padding: 14,
   };
 }
+

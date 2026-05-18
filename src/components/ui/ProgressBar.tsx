@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 
 interface ProgressBarProps {
   current: number;
@@ -25,3 +26,4 @@ export function ProgressBar({ current, total, label }: ProgressBarProps) {
     </View>
   );
 }
+

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View,  ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { TOTAL_HIZB, EIGHTHS_PER_HIZB, TOTAL_EIGHTHS, eighthsToLabel } from '@/core/domain/hizbMath';
@@ -156,3 +157,4 @@ export default function MapScreen() {
     </PageContainer>
   );
 }
+

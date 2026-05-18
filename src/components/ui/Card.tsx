@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ViewProps } from 'react-native';
+import { View,  ViewProps } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 
 interface CardProps extends ViewProps {
   title?: string;
@@ -19,3 +20,4 @@ export function Card({ title, icon, children, className = '', ...props }: CardPr
     </View>
   );
 }
+

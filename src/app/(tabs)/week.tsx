@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View,  ScrollView } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { Card } from '@/components/ui/Card';
@@ -96,3 +97,4 @@ export default function WeekScreen() {
     </PageContainer>
   );
 }
+

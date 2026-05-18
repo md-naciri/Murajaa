@@ -56,7 +56,7 @@ export function Select({ selectedValue, onValueChange, options }: SelectProps) {
         style={{ color: '#e6edf3' }}
       >
         {options.map((opt) => (
-          <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+          <Picker.Item key={opt.value} label={"\u200F" + opt.label} value={opt.value} />
         ))}
       </Picker>
     </View>

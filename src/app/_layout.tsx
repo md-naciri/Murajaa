@@ -1,28 +1,25 @@
 import '../global.css';
 
 import React, { useEffect } from 'react';
-import { UIManager, Platform, Text } from 'react-native';
+import { UIManager, Platform, StyleSheet } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 
-// Force default font settings for Android to improve Arabic rendering
-if (Platform.OS === 'android') {
-  // @ts-ignore
-  const oldRender = Text.render;
-  if (oldRender) {
-    // @ts-ignore
-    Text.render = function (...args) {
-      const origin = oldRender.call(this, ...args);
-      return React.cloneElement(origin, {
-        style: [{ fontFamily: 'sans-serif' }, origin.props.style]
-      });
-    };
-  }
-}
+import { useFonts, Cairo_400Regular, Cairo_700Bold } from '@expo-google-fonts/cairo';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
+
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { DatabaseService } from '@/data/db/DatabaseService';
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Cairo_400Regular,
+    Cairo_700Bold,
+  });
+
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -30,6 +27,16 @@ export default function RootLayout() {
     // Initialize SQLite database (if on native)
     DatabaseService.initDb();
   }, []);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <ThemeProvider value={DarkTheme}>
@@ -42,4 +49,5 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
 

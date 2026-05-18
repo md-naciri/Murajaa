@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, SectionList, RefreshControl } from 'react-native';
+import { View,  SectionList, RefreshControl } from 'react-native';
+import { AppText as Text } from '@/components/ui/AppText';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { PageContainer } from '@/components/ui/PageContainer';
@@ -15,12 +16,16 @@ interface LogGroup {
 export default function LogScreen() {
   const [logs, setLogs] = useState<LogGroup[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   const fetchLogs = async () => {
     const rawLogs = await DatabaseService.getAllLogs();
     
+    setHasMore(rawLogs.length > 50);
+    const limitedLogs = rawLogs.slice(0, 50);
+
     // Group logs by date
-    const grouped = rawLogs.reduce((acc, log) => {
+    const grouped = limitedLogs.reduce((acc, log) => {
       if (!acc[log.date]) {
         acc[log.date] = [];
       }
@@ -107,9 +112,17 @@ export default function LogScreen() {
             renderSectionHeader={renderSectionHeader}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#d4a843" />}
             stickySectionHeadersEnabled={false}
+            ListFooterComponent={
+              hasMore ? (
+                <View style={{ padding: 16, alignItems: 'center' }}>
+                  <Text style={{ color: '#8b949e', fontSize: 12 }}>يتم عرض آخر 50 تسجيلاً فقط.</Text>
+                </View>
+              ) : null
+            }
           />
         </View>
       )}
     </PageContainer>
   );
 }
+
