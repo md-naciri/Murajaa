@@ -7,13 +7,13 @@ export const TOTAL_EIGHTHS = TOTAL_HIZB * EIGHTHS_PER_HIZB; // 480
 
 export const UNIT_OPTIONS = [
   { label: "ثمن", value: 1 },
-  { label: "ربع (ثمنان)", value: 2 },
+  { label: "ربع", value: 2 },
   { label: "ثلاثة أثمان", value: 3 },
-  { label: "نصف حزب", value: 4 },
+  { label: "نصف", value: 4 },
   { label: "خمسة أثمان", value: 5 },
   { label: "ثلاثة أرباع", value: 6 },
   { label: "سبعة أثمان", value: 7 },
-  { label: "حزب كامل", value: 8 },
+  { label: "حزب", value: 8 },
   { label: "حزب وثمن", value: 9 },
   { label: "حزب وربع", value: 10 },
   { label: "حزب ونصف", value: 12 },
@@ -28,9 +28,26 @@ export function eighthsToLabel(eighths: number): string {
   if (eighths <= 0) return "—";
   const hizb = Math.floor(eighths / EIGHTHS_PER_HIZB);
   const rem  = eighths % EIGHTHS_PER_HIZB;
-  const remNames = ["","ثمن","ربع","ربع وثمن","نصف","نصف وثمن","ثلاثة أرباع","سبعة أثمان"];
-  const hizbPart = hizb > 0 ? (hizb === 1 ? "حزب" : `${hizb} أحزاب`) : "";
-  const remPart  = rem > 0 ? remNames[rem] : "";
+  
+  const remNames = [
+    "", 
+    "ثمن", 
+    "ربع", 
+    "ثلاثة أثمان", 
+    "نصف", 
+    "خمسة أثمان", 
+    "ثلاثة أرباع", 
+    "سبعة أثمان"
+  ];
+  
+  let hizbPart = "";
+  if (hizb === 1) hizbPart = "حزب";
+  else if (hizb === 2) hizbPart = "حزبان";
+  else if (hizb >= 3 && hizb <= 10) hizbPart = `${hizb} أحزاب`;
+  else if (hizb >= 11) hizbPart = `${hizb} حزباً`;
+
+  const remPart = rem > 0 ? remNames[rem] : "";
+  
   if (hizbPart && remPart) return `${hizbPart} و${remPart}`;
   return hizbPart || remPart;
 }

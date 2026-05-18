@@ -138,7 +138,7 @@ export default function MapScreen() {
               
               <Text style={{ color: '#8b949e', fontSize: 14, marginBottom: 24, textAlign: 'center' }}>
                 {selectedData.isFull 
-                  ? 'تم حفظ هذا الحزب بالكامل (8 أثمان).' 
+                  ? 'تم حفظ هذا الحزب بالكامل.' 
                   : selectedData.isPartial 
                     ? `قيد الحفظ: تم حفظ ${selectedData.eighths} من 8 أثمان.`
                     : 'لم يتم حفظ هذا الحزب بعد.'}

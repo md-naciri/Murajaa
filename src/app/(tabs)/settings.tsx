@@ -47,7 +47,7 @@ export default function SettingsScreen() {
       {/* Plan Settings */}
       <Card title="إعدادات الخطة" icon={<Ionicons name="options-outline" size={20} color="#d4a843" />}>
         <View style={{ marginBottom: 20 }}>
-          <Text style={label}>يوم الاستظهار الأسبوعي:</Text>
+          <Text style={label}>يوم الاستظهار:</Text>
           <Select selectedValue={izharDay} onValueChange={setIzharDay} options={DAY_OPTIONS} />
         </View>
 
@@ -58,7 +58,7 @@ export default function SettingsScreen() {
 
         <View style={{ backgroundColor: 'rgba(168,85,247,0.1)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', padding: 12, borderRadius: 8 }}>
           <Text style={{ color: '#c084fc', fontSize: 12, textAlign: 'center', lineHeight: 20 }}>
-            ◆ يوم {DAY_NAMES_AR[izharDay]}: استظهار + مراجعة | باقي الأيام: مراجعة فقط
+            ◆ يوم {DAY_NAMES_AR[izharDay]}: يوم الاستظهار ويوم بداية المراجعة الأسبوعية
           </Text>
         </View>
       </Card>
@@ -66,11 +66,11 @@ export default function SettingsScreen() {
       {/* Memorization Balance */}
       <Card title="رصيد الحفظ" icon={<Ionicons name="book-outline" size={20} color="#d4a843" />}>
         <View style={{ backgroundColor: '#21262d', borderWidth: 1, borderColor: '#30363d', borderRadius: 10, padding: 16, alignItems: 'center', marginBottom: 16 }}>
-          <Text style={{ color: '#8b949e', fontSize: 13, marginBottom: 8 }}>الإجمالي الحالي</Text>
+          <Text style={{ color: '#8b949e', fontSize: 13, marginBottom: 8 }}>المحفوظ</Text>
           <Text style={{ color: '#f0c96b', fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>
             {memorizedEighths === 0
               ? 'لم يتم حفظ أي شيء بعد'
-              : `${hizbCount > 0 ? hizbCount + ' حزب' : ''}${remEighths > 0 ? (hizbCount > 0 ? ' و ' : '') + remEighths + ' ثمن' : ''}`
+              : eighthsToLabel(memorizedEighths)
             }
           </Text>
           <Text style={{ color: '#c9d1d9', fontSize: 14 }}>{memorizedEighths} من {TOTAL_EIGHTHS} ثمن ({pct}%)</Text>
@@ -81,7 +81,7 @@ export default function SettingsScreen() {
           style={{ backgroundColor: '#30363d', paddingVertical: 12, borderRadius: 8, alignItems: 'center', flexDirection: 'row-reverse', justifyContent: 'center', gap: 8 }}
         >
           <Ionicons name="create-outline" size={18} color="#e6edf3" />
-          <Text style={{ color: '#e6edf3', fontWeight: 'bold', fontSize: 15 }}>تعديل الرصيد</Text>
+          <Text style={{ color: '#e6edf3', fontWeight: 'bold', fontSize: 15 }}>تعديل المحفوظ</Text>
         </TouchableOpacity>
       </Card>
 

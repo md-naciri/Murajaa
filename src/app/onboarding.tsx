@@ -58,7 +58,7 @@ export default function OnboardingScreen() {
         </View>
         <Text style={{ color: '#f0c96b', fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>مرحبا بك في Murajaa</Text>
         <Text style={{ color: '#8b949e', fontSize: 14, textAlign: 'center', paddingHorizontal: 20, lineHeight: 22 }}>
-          تطبيقك الشخصي لمتابعة وتثبيت حفظ القرآن الكريم بطريقة منهجية ومنظمة.
+          تطبيقك الشخصي لمتابعة وتثبيت حفظ القرآن الكريم.
         </Text>
       </View>
 
@@ -100,7 +100,7 @@ export default function OnboardingScreen() {
         </View>
 
         {/* Izhar Day */}
-        <Text style={label}>يوم الاستظهار الأسبوعي:</Text>
+        <Text style={label}>يوم الاستظهار:</Text>
         <View style={{ marginBottom: 20 }}>
           <Select selectedValue={izharDay} onValueChange={setIzharDay} options={DAY_OPTIONS} />
         </View>

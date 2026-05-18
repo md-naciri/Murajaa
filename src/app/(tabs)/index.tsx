@@ -205,7 +205,7 @@ export default function TodayScreen() {
       setCompletedReview(false);
     } else {
       // Check
-      const range = todaySchedule.isOptional ? 'مراجعة اختيارية' : formatEighthsRange(todaySchedule.eighths);
+      const range = todaySchedule.isOptional ? '(راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع' : formatEighthsRange(todaySchedule.eighths);
       await DatabaseService.addLog(today, 'review', todaySchedule.amount, range);
       setCompletedReview(true);
     }
@@ -226,18 +226,17 @@ export default function TodayScreen() {
       <View style={{ flexDirection: 'row-reverse', gap: 10, marginBottom: 16 }}>
         <View style={statCard}>
           <Text style={statValue}>
-            {hizbCount > 0 ? `${hizbCount} حزب` : '—'}
-            {remEighths > 0 ? `\n+ ${remEighths}/8` : ''}
+            {memorizedEighths > 0 ? eighthsToLabel(memorizedEighths) : '—'}
           </Text>
           <Text style={statLabel}>المحفوظ</Text>
         </View>
         <View style={statCard}>
           <Text style={statValue}>{eighthsToLabel(weeklyGoalEighths)}</Text>
-          <Text style={statLabel}>الهدف الأسبوعي</Text>
+          <Text style={statLabel}>مقدار الحفظ الأسبوعي</Text>
         </View>
         <View style={statCard}>
           <Text style={statValue}>{eighthsToLabel(dailyReview)}</Text>
-          <Text style={statLabel}>مراجعة يومية</Text>
+          <Text style={statLabel}>مقدار المراجعة اليومية</Text>
         </View>
       </View>
 
@@ -255,7 +254,7 @@ export default function TodayScreen() {
         <View style={{ backgroundColor: 'rgba(138,106,32,0.1)', borderWidth: 1, borderColor: '#8a6a20', padding: 14, borderRadius: 12, marginBottom: 16 }}>
           <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 6 }}>
             <Ionicons name="sparkles" size={16} color="#f0c96b" />
-            <Text style={{ color: '#f0c96b', fontSize: 13, fontWeight: 'bold' }}>مرحباً بك في مراجعة</Text>
+            <Text style={{ color: '#f0c96b', fontSize: 13, fontWeight: 'bold' }}>مرحباً بك في تطبيق مراجعة</Text>
           </View>
           <Text style={{ color: '#f0c96b', fontSize: 13, lineHeight: 22, textAlign: 'right' }}>
             ابدأ بضبط إعداداتك من تبويب الإعدادات وتحديد ما حفظته حتى الآن.
@@ -355,7 +354,7 @@ export default function TodayScreen() {
                 {memorizedEighths === 0
                   ? 'لا يوجد محفوظ بعد'
                   : todaySchedule.isOptional 
-                    ? 'مراجعة اختيارية' 
+                    ? 'راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع)' 
                     : formatEighthsRange(todaySchedule.eighths)
                 }
               </Text>
@@ -368,7 +367,7 @@ export default function TodayScreen() {
 
         <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#30363d' }}>
           <Text style={{ color: '#8b949e', fontSize: 12, textAlign: 'center' }}>
-            يوم الاستظهار الأسبوعي: {DAY_NAMES_AR[izharDay]}
+            يوم الاستظهار: {DAY_NAMES_AR[izharDay]}
           </Text>
         </View>
       </View>

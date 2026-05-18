@@ -27,7 +27,7 @@ export default function WeekScreen() {
             البرنامج الأسبوعي
           </Text>
           <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'center' }}>
-            توزيع المراجعة من الاستظهار القادم وحتى الاستظهار الذي يليه
+            توزيع مراجعة محفوظك على أيام الأسبوع 
           </Text>
         </View>
 
