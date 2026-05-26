@@ -8,6 +8,8 @@ export interface HifzState {
   hasCompletedOnboarding: boolean;
   _hasHydrated: boolean; // Flag to indicate if initial load from storage is done
   appStartDate: string | null; // The date the app was first setup
+  remindersEnabled: boolean; // Whether reminders are enabled (default: true)
+  reminderTime: string; // Time to trigger notification (format: HH:MM, default: 20:00)
 }
 
 export interface HifzActions {
@@ -18,6 +20,8 @@ export interface HifzActions {
   completeOnboarding: () => void;
   _setHydrated: (state: Partial<HifzState>) => void;
   setAppStartDate: (dateStr: string) => void;
+  setRemindersEnabled: (enabled: boolean) => void;
+  setReminderTime: (timeStr: string) => void;
 }
 
 export const useHifzStore = create<HifzState & HifzActions>((set) => ({
@@ -27,6 +31,8 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   hasCompletedOnboarding: false,
   _hasHydrated: false,
   appStartDate: null,
+  remindersEnabled: true,
+  reminderTime: '20:00',
 
   setMemorizedEighths: (amount) => set({ memorizedEighths: amount }),
   setWeeklyGoal: (amount) => set({ weeklyGoalEighths: amount }),
@@ -37,6 +43,8 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
   _setHydrated: (persistedState) => set({ ...persistedState, _hasHydrated: true }),
   setAppStartDate: (dateStr) => set({ appStartDate: dateStr }),
+  setRemindersEnabled: (enabled) => set({ remindersEnabled: enabled }),
+  setReminderTime: (timeStr) => set({ reminderTime: timeStr }),
 }));
 
 // --- Manual Persistence Sync ---
@@ -68,7 +76,9 @@ useHifzStore.subscribe((state, prevState) => {
     state.memorizedEighths !== prevState.memorizedEighths ||
     state.weeklyGoalEighths !== prevState.weeklyGoalEighths ||
     state.izharDay !== prevState.izharDay ||
-    state.hasCompletedOnboarding !== prevState.hasCompletedOnboarding
+    state.hasCompletedOnboarding !== prevState.hasCompletedOnboarding ||
+    state.remindersEnabled !== prevState.remindersEnabled ||
+    state.reminderTime !== prevState.reminderTime
   ) {
     const stateToSave = {
       memorizedEighths: state.memorizedEighths,
@@ -76,6 +86,8 @@ useHifzStore.subscribe((state, prevState) => {
       izharDay: state.izharDay,
       hasCompletedOnboarding: state.hasCompletedOnboarding,
       appStartDate: state.appStartDate,
+      remindersEnabled: state.remindersEnabled,
+      reminderTime: state.reminderTime,
     };
     storageAdapter.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
   }

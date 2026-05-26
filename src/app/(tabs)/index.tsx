@@ -14,6 +14,8 @@ import {
 import {
   todayStr, formatDateLong, getWeekDates, buildWeekSchedule, DAY_NAMES_AR, getAppDate, dateToStr, formatDateShort
 } from '@/core/domain/dateHelpers';
+import * as NotificationService from '@/data/services/NotificationService';
+import { Ionicons } from '@expo/vector-icons';
 
 export interface MissedTask {
   id: string;
@@ -23,7 +25,6 @@ export interface MissedTask {
   rangeStr: string;
   isCompleted: boolean;
 }
-import { Ionicons } from '@expo/vector-icons';
 
 export default function TodayScreen() {
   const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
@@ -32,6 +33,9 @@ export default function TodayScreen() {
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
   const appStartDate = useHifzStore(s => s.appStartDate);
   const setAppStartDate = useHifzStore(s => s.setAppStartDate);
+  const remindersEnabled = useHifzStore(s => s.remindersEnabled);
+  const reminderTime = useHifzStore(s => s.reminderTime);
+  const setRemindersEnabled = useHifzStore(s => s.setRemindersEnabled);
 
   const today       = todayStr(0);
   const weekDates   = getWeekDates(izharDay, 0);
@@ -90,8 +94,9 @@ export default function TodayScreen() {
 
         // 1. Today's status
         const todayLogs = logs.filter(l => l.date === today);
+        const isReviewDoneToday = todayLogs.some(l => l.task_type === 'review');
         setCompletedIzhar(todayLogs.some(l => l.task_type === 'izhar'));
-        setCompletedReview(todayLogs.some(l => l.task_type === 'review'));
+        setCompletedReview(isReviewDoneToday);
 
         // 2. Missed tasks for the last 7 days
         const computedMissed: MissedTask[] = [];
@@ -154,10 +159,32 @@ export default function TodayScreen() {
         
         // Sort oldest to newest
         setMissedTasks(computedMissed.sort((a, b) => a.date.localeCompare(b.date)));
+
+        // 3. Sync Notification Reminders
+        if (remindersEnabled) {
+          const hasPermission = await NotificationService.getPermissions();
+          if (hasPermission) {
+            await NotificationService.updateSchedule(true, reminderTime, isReviewDoneToday);
+          } else {
+            // Attempt to request permission
+            const granted = await NotificationService.requestPermissions();
+            if (granted) {
+              await NotificationService.updateSchedule(true, reminderTime, isReviewDoneToday);
+            } else {
+              // Permission denied/revoked, automatically set toggle to OFF
+              if (remindersEnabled) {
+                setRemindersEnabled(false);
+              }
+              await NotificationService.updateSchedule(false, reminderTime, false);
+            }
+          }
+        } else {
+          await NotificationService.updateSchedule(false, reminderTime, false);
+        }
       };
       fetchLogs();
       return () => { isActive = false; };
-    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, quranComplete, appStartDate])
+    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, quranComplete, appStartDate, remindersEnabled, reminderTime, setRemindersEnabled])
   );
 
   const handleToggleMissed = async (task: MissedTask) => {
@@ -202,11 +229,13 @@ export default function TodayScreen() {
       // Uncheck
       await DatabaseService.removeLog(today, 'review');
       setCompletedReview(false);
+      await NotificationService.updateSchedule(remindersEnabled, reminderTime, false);
     } else {
       // Check
       const range = todaySchedule.isOptional ? '(راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع' : formatEighthsRange(todaySchedule.eighths);
       await DatabaseService.addLog(today, 'review', todaySchedule.amount, range);
       setCompletedReview(true);
+      await NotificationService.updateSchedule(remindersEnabled, reminderTime, true);
     }
   };
 

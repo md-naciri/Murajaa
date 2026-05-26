@@ -7,13 +7,39 @@ interface CardProps extends ViewProps {
   icon?: React.ReactNode;
 }
 
-export function Card({ title, icon, children, className = '', ...props }: CardProps) {
+export function Card({ title, icon, children, style, ...props }: CardProps) {
   return (
-    <View className={`bg-surface-1 border border-surface-2 rounded-2xl p-5 mb-4 ${className}`} {...props}>
+    <View 
+      style={[
+        {
+          backgroundColor: '#161b22', // bg-surface-1
+          borderWidth: 1,
+          borderColor: '#30363d', // border-surface-2
+          borderRadius: 16, // rounded-2xl
+          padding: 20, // p-5
+          marginBottom: 16, // mb-4
+        },
+        style
+      ]} 
+      {...props}
+    >
       {(title || icon) && (
-        <View className="flex-row-reverse items-center gap-2 mb-4">
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           {icon}
-          {title && <Text className="text-gold font-bold tracking-widest text-xs uppercase text-right">{title}</Text>}
+          {title && (
+            <Text 
+              style={{ 
+                color: '#d4a843', // text-gold
+                fontWeight: 'bold', 
+                letterSpacing: 1, // tracking-widest
+                fontSize: 12, // text-xs
+                textTransform: 'uppercase', 
+                textAlign: 'right' 
+              }}
+            >
+              {title}
+            </Text>
+          )}
         </View>
       )}
       {children}

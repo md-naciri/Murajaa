@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View,  TextInput, TouchableOpacity, Modal } from 'react-native';
+import { View,  TextInput, TouchableOpacity, Modal, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
@@ -7,10 +7,45 @@ import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { TOTAL_EIGHTHS, UNIT_OPTIONS, eighthsToLabel, EIGHTHS_PER_HIZB } from '@/core/domain/hizbMath';
-import { DAY_NAMES_AR } from '@/core/domain/dateHelpers';
+import { DAY_NAMES_AR, todayStr } from '@/core/domain/dateHelpers';
+import { DatabaseService } from '@/data/db/DatabaseService';
 import { Ionicons } from '@expo/vector-icons';
+import * as NotificationService from '@/data/services/NotificationService';
 
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
+
+function formatTimeArabic(timeStr: string): string {
+  const [hourStr, minStr] = timeStr.split(':');
+  let hour = parseInt(hourStr, 10);
+  const minute = parseInt(minStr, 10);
+  
+  if (isNaN(hour) || isNaN(minute)) return timeStr;
+  
+  const isPm = hour >= 12;
+  const amPmStr = isPm ? 'مساءً' : 'صباحاً';
+  
+  if (hour === 0) {
+    hour = 12;
+  } else if (hour > 12) {
+    hour -= 12;
+  }
+  
+  const minFormatted = String(minute).padStart(2, '0');
+  return `${hour}:${minFormatted} ${amPmStr}`;
+}
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
+  const isPm = i >= 12;
+  const h12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
+  const label = `${h12} ${isPm ? 'مساءً' : 'صباحاً'} (${String(i).padStart(2, '0')}:00)`;
+  return { label, value: i };
+});
+
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const val = i * 5;
+  const label = String(val).padStart(2, '0');
+  return { label: `${label} دقيقة`, value: val };
+});
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -25,8 +60,19 @@ export default function SettingsScreen() {
   const setStoreMemorized = useHifzStore(s => s.setMemorizedEighths);
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
 
+  // Reminders store settings
+  const remindersEnabled = useHifzStore(s => s.remindersEnabled);
+  const reminderTime = useHifzStore(s => s.reminderTime);
+  const setRemindersEnabled = useHifzStore(s => s.setRemindersEnabled);
+  const setReminderTime = useHifzStore(s => s.setReminderTime);
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [editAmount, setEditAmount] = useState(memorizedEighths);
+
+  // Time Picker Modal states
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [selectedHour, setSelectedHour] = useState(20);
+  const [selectedMinute, setSelectedMinute] = useState(0);
 
   // Sync edit amount when opening modal
   React.useEffect(() => {
@@ -34,6 +80,50 @@ export default function SettingsScreen() {
       setEditAmount(memorizedEighths);
     }
   }, [showEditModal, memorizedEighths]);
+
+  // Sync time picker values when opening modal
+  React.useEffect(() => {
+    if (showTimeModal) {
+      const [hStr, mStr] = reminderTime.split(':');
+      setSelectedHour(parseInt(hStr, 10) || 20);
+      setSelectedMinute(parseInt(mStr, 10) || 0);
+    }
+  }, [showTimeModal, reminderTime]);
+
+  const handleToggleReminders = async (value: boolean) => {
+    if (value) {
+      const granted = await NotificationService.requestPermissions();
+      if (granted) {
+        setRemindersEnabled(true);
+        const logs = await DatabaseService.getLogsForDate(todayStr(0));
+        const isReviewDoneToday = logs.some(l => l.task_type === 'review');
+        await NotificationService.updateSchedule(true, reminderTime, isReviewDoneToday);
+      } else {
+        Alert.alert(
+          'تنبيهات المراجعة',
+          'الرجاء تفعيل صلاحية التنبيهات من إعدادات النظام لتلقي التذكيرات اليومية.',
+          [{ text: 'حسناً' }]
+        );
+        setRemindersEnabled(false);
+      }
+    } else {
+      setRemindersEnabled(false);
+      await NotificationService.updateSchedule(false, reminderTime, false);
+    }
+  };
+
+  const handleSaveTime = async () => {
+    const formattedHour = String(selectedHour).padStart(2, '0');
+    const formattedMinute = String(selectedMinute).padStart(2, '0');
+    const newTime = `${formattedHour}:${formattedMinute}`;
+    
+    setReminderTime(newTime);
+    setShowTimeModal(false);
+
+    const logs = await DatabaseService.getLogsForDate(todayStr(0));
+    const isReviewDoneToday = logs.some(l => l.task_type === 'review');
+    await NotificationService.updateSchedule(remindersEnabled, newTime, isReviewDoneToday);
+  };
 
   const hizbCount = Math.floor(memorizedEighths / EIGHTHS_PER_HIZB);
   const remEighths = memorizedEighths % EIGHTHS_PER_HIZB;
@@ -64,6 +154,44 @@ export default function SettingsScreen() {
             ◆ يوم {DAY_NAMES_AR[izharDay]}: يوم الاستظهار ويوم بداية المراجعة الأسبوعية
           </Text>
         </View>
+      </Card>
+
+      {/* Review Reminders */}
+      <Card title="تنبيهات المراجعة" icon={<Ionicons name="notifications-outline" size={20} color="#d4a843" />}>
+        <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ color: '#e6edf3', fontSize: 15, fontWeight: 'bold' }}>تفعيل التنبيهات اليومية</Text>
+          <Switch
+            value={remindersEnabled}
+            onValueChange={handleToggleReminders}
+            trackColor={{ false: '#30363d', true: 'rgba(212,168,67,0.5)' }}
+            thumbColor={remindersEnabled ? '#d4a843' : '#8b949e'}
+          />
+        </View>
+        <Text style={{ color: '#8b949e', fontSize: 12, textAlign: 'right', marginBottom: remindersEnabled ? 16 : 0, lineHeight: 18 }}>
+          تلقي تذكير يومي للمراجعة في الوقت الذي تحدده.
+        </Text>
+
+        {remindersEnabled && (
+          <View style={{ borderTopWidth: 1, borderTopColor: '#30363d', paddingTop: 16, flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#8b949e', fontSize: 13 }}>وقت التنبيه:</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowTimeModal(true)}
+              style={{
+                backgroundColor: '#21262d',
+                borderWidth: 1,
+                borderColor: '#30363d',
+                borderRadius: 8,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+              }}
+            >
+              <Text style={{ color: '#f0c96b', fontWeight: 'bold', fontSize: 14 }}>
+                {formatTimeArabic(reminderTime)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </Card>
 
       {/* Memorization Balance */}
@@ -173,6 +301,55 @@ export default function SettingsScreen() {
               }}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>حفظ التعديلات</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Reminder Time Modal */}
+      <Modal
+        transparent={true}
+        visible={showTimeModal}
+        animationType="fade"
+        onRequestClose={() => setShowTimeModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#30363d', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 }}>
+            <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ color: '#e6edf3', fontSize: 18, fontWeight: 'bold' }}>تعديل وقت التنبيه</Text>
+              <TouchableOpacity onPress={() => setShowTimeModal(false)}>
+                <Ionicons name="close" size={24} color="#8b949e" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right', marginBottom: 16, lineHeight: 20 }}>
+              حدد الساعة والدقيقة لتلقي التنبيه اليومي:
+            </Text>
+
+            <View style={{ flexDirection: 'row-reverse', gap: 12, marginBottom: 24 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 6, textAlign: 'right' }}>الساعة:</Text>
+                <Select
+                  selectedValue={selectedHour}
+                  onValueChange={setSelectedHour}
+                  options={HOUR_OPTIONS}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 6, textAlign: 'right' }}>الدقيقة:</Text>
+                <Select
+                  selectedValue={selectedMinute}
+                  onValueChange={setSelectedMinute}
+                  options={MINUTE_OPTIONS}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#2ea043', paddingVertical: 14, borderRadius: 8, alignItems: 'center' }}
+              onPress={handleSaveTime}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>حفظ وقت التنبيه</Text>
             </TouchableOpacity>
           </View>
         </View>
