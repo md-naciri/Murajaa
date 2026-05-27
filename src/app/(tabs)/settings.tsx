@@ -1,40 +1,40 @@
-import React, { useState } from 'react';
-import { View,  TextInput, TouchableOpacity, Modal, Switch, Alert, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
 import { AppText as Text } from '@/components/ui/AppText';
-import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Card } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Select';
 import { PageContainer } from '@/components/ui/PageContainer';
-import { TOTAL_EIGHTHS, eighthsToLabel, EIGHTHS_PER_HIZB } from '@/core/domain/hizbMath';
+import { Select } from '@/components/ui/Select';
 import { DAY_NAMES_AR, todayStr } from '@/core/domain/dateHelpers';
+import { TOTAL_EIGHTHS, eighthsToLabel } from '@/core/domain/hizbMath';
 import { DatabaseService } from '@/data/db/DatabaseService';
-import { Ionicons } from '@expo/vector-icons';
 import * as NotificationService from '@/data/services/NotificationService';
+import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Modal, Platform, Switch, TextInput, TouchableOpacity, View } from 'react-native';
 
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
 
 const MODE_OPTIONS = [
-  { label: 'من الحزب 1 إلى 60 (تصاعدي)', value: 0 },
-  { label: 'من الحزب 60 إلى 1 (تنازلي)', value: 1 },
+  { label: 'من الحزب 1 إلى الحزب 60 (تصاعدي)', value: 0 },
+  { label: 'من الحزب 60 إلى الحزب 1 (تنازلي)', value: 1 },
 ];
 
 function formatTimeArabic(timeStr: string): string {
   const [hourStr, minStr] = timeStr.split(':');
   let hour = parseInt(hourStr, 10);
   const minute = parseInt(minStr, 10);
-  
+
   if (isNaN(hour) || isNaN(minute)) return timeStr;
-  
+
   const isPm = hour >= 12;
   const amPmStr = isPm ? 'مساءً' : 'صباحاً';
-  
+
   if (hour === 0) {
     hour = 12;
   } else if (hour > 12) {
     hour -= 12;
   }
-  
+
   const minFormatted = String(minute).padStart(2, '0');
   return `${hour}:${minFormatted} ${amPmStr}`;
 }
@@ -54,16 +54,16 @@ const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  
+
   // Individual selectors for React 19 Compiler compatibility
-  const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
-  const memorizationMode  = useHifzStore(s => s.memorizationMode);
-  const izharDay          = useHifzStore(s => s.izharDay);
-  
+  const memorizedEighths = useHifzStore(s => s.memorizedEighths);
+  const memorizationMode = useHifzStore(s => s.memorizationMode);
+  const izharDay = useHifzStore(s => s.izharDay);
+
   const setMemorizationMode = useHifzStore(s => s.setMemorizationMode);
   const setMemorizedAtWeekStart = useHifzStore(s => s.setMemorizedAtWeekStart);
-  const setIzharDay         = useHifzStore(s => s.setIzharDay);
-  const setStoreMemorized   = useHifzStore(s => s.setMemorizedEighths);
+  const setIzharDay = useHifzStore(s => s.setIzharDay);
+  const setStoreMemorized = useHifzStore(s => s.setMemorizedEighths);
 
   // Reminders store settings
   const remindersEnabled = useHifzStore(s => s.remindersEnabled);
@@ -119,7 +119,7 @@ export default function SettingsScreen() {
     const logs = await DatabaseService.getLogsForDate(todayStr(0));
     const isReviewDoneToday = logs.some(l => l.task_type === 'review');
     await NotificationService.updateSchedule(remindersEnabled, reminderTime, isReviewDoneToday);
-    
+
     // 4. Hide warning modal and open guided re-entry modal
     setShowResetConfirmModal(false);
     setReenterAmount('');
@@ -134,7 +134,7 @@ export default function SettingsScreen() {
     // Save to both store counts
     setStoreMemorized(amount);
     setMemorizedAtWeekStart(amount);
-    
+
     setShowReenterModal(false);
 
     // Sync notification schedule
@@ -184,7 +184,7 @@ export default function SettingsScreen() {
     const formattedHour = String(selectedHour).padStart(2, '0');
     const formattedMinute = String(selectedMinute).padStart(2, '0');
     const newTime = `${formattedHour}:${formattedMinute}`;
-    
+
     setReminderTime(newTime);
     setShowTimeModal(false);
 
@@ -238,7 +238,7 @@ export default function SettingsScreen() {
           />
         </View>
         <Text style={{ color: '#8b949e', fontSize: 12, textAlign: 'right', marginBottom: remindersEnabled ? 16 : 0, lineHeight: 18 }}>
-          تلقي تذكير يومي للمراجعة في الوقت الذي تحدده.
+          تلقي تذكير يومي للمراجعة.
         </Text>
 
         {remindersEnabled && (
@@ -315,19 +315,19 @@ export default function SettingsScreen() {
                 <Ionicons name="close" size={24} color="#8b949e" />
               </TouchableOpacity>
             </View>
-            
+
             <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right', marginBottom: 16, lineHeight: 20 }}>
               يمكنك زيادة أو إنقاص الأثمان، أو كتابة المجموع الكلي مباشرة للوصول السريع:
             </Text>
 
             <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => editAmount > 0 && setEditAmount(editAmount - 1)}
                 style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#30363d', alignItems: 'center', justifyContent: 'center' }}
               >
                 <Ionicons name="remove" size={24} color="#e6edf3" />
               </TouchableOpacity>
-              
+
               <View style={{ alignItems: 'center' }}>
                 <TextInput
                   style={{
@@ -349,7 +349,7 @@ export default function SettingsScreen() {
                 <Text style={{ color: '#8b949e', fontSize: 12 }}>أثمان</Text>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => editAmount < TOTAL_EIGHTHS && setEditAmount(editAmount + 1)}
                 style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#30363d', alignItems: 'center', justifyContent: 'center' }}
               >
@@ -363,7 +363,7 @@ export default function SettingsScreen() {
               </Text>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ backgroundColor: '#2ea043', paddingVertical: 14, borderRadius: 8, alignItems: 'center' }}
               onPress={async () => {
                 setStoreMemorized(editAmount);
@@ -421,7 +421,7 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ backgroundColor: '#2ea043', paddingVertical: 14, borderRadius: 8, alignItems: 'center' }}
               onPress={handleSaveTime}
             >

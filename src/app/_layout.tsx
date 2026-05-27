@@ -10,11 +10,13 @@ import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
 
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 import { DatabaseService } from '@/data/db/DatabaseService';
 
 export default function RootLayout() {
+  const router = useRouter();
   const [fontsLoaded] = useFonts({
     Cairo_400Regular,
     Cairo_700Bold,
@@ -26,7 +28,20 @@ export default function RootLayout() {
     }
     // Initialize SQLite database (if on native)
     DatabaseService.initDb();
-  }, []);
+
+    // Listen to notification taps to route correctly
+    let isMounted = true;
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      if (isMounted) {
+        router.push('/(tabs)');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
+  }, [router]);
 
   useEffect(() => {
     if (fontsLoaded) {

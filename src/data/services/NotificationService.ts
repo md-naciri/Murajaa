@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 // Set up the notification handler to determine what to do when a notification is received
 // while the app is in the foreground.
@@ -11,6 +12,20 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+/**
+ * Sets up the Android notification channel with maximum importance.
+ */
+export async function setupChannels(): Promise<void> {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('daily-reminders', {
+      name: 'تذكير المراجعة',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#d4a843',
+    });
+  }
+}
 
 /**
  * Checks if the notification permission is currently granted.
@@ -56,6 +71,8 @@ export async function updateSchedule(enabled: boolean, timeStr: string, isComple
       return;
     }
 
+    await setupChannels();
+
     // 2. Parse trigger time (HH:MM)
     const [hourStr, minStr] = timeStr.split(':');
     const targetHour = parseInt(hourStr, 10);
@@ -95,6 +112,7 @@ export async function updateSchedule(enabled: boolean, timeStr: string, isComple
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: triggerDate,
+          channelId: 'daily-reminders',
         },
       });
     }

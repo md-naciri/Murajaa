@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { View,  SectionList, RefreshControl } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
-import { useFocusEffect } from 'expo-router';
-import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
-import { Ionicons } from '@expo/vector-icons';
 import { PageContainer } from '@/components/ui/PageContainer';
-import { DatabaseService, HifzLog } from '@/data/db/DatabaseService';
-import { eighthsToLabel } from '@/core/domain/hizbMath';
 import { formatDateLong } from '@/core/domain/dateHelpers';
+import { eighthsToLabel } from '@/core/domain/hizbMath';
+import { DatabaseService, HifzLog } from '@/data/db/DatabaseService';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+import React, { useState } from 'react';
+import { RefreshControl, SectionList, View } from 'react-native';
 
 interface LogGroup {
   title: string;
@@ -21,7 +20,7 @@ export default function LogScreen() {
 
   const fetchLogs = async () => {
     const rawLogs = await DatabaseService.getAllLogs();
-    
+
     setHasMore(rawLogs.length > 50);
     const limitedLogs = rawLogs.slice(0, 50);
 
@@ -61,10 +60,10 @@ export default function LogScreen() {
     return (
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#161b22', padding: 16, borderBottomWidth: 1, borderBottomColor: '#30363d' }}>
         <View style={{ width: 40, alignItems: 'center' }}>
-          <Ionicons 
-            name={isIzhar ? 'star' : 'sync'} 
-            size={20} 
-            color={isIzhar ? '#c084fc' : '#2ea043'} 
+          <Ionicons
+            name={isIzhar ? 'star' : 'sync'}
+            size={20}
+            color={isIzhar ? '#c084fc' : '#2ea043'}
           />
         </View>
         <View style={{ flex: 1, marginLeft: 16 }}>

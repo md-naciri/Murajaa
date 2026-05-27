@@ -1,25 +1,25 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Image } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
-import { useRouter } from 'expo-router';
-import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
-import { PageContainer } from '@/components/ui/PageContainer';
 import { Card } from '@/components/ui/Card';
+import { PageContainer } from '@/components/ui/PageContainer';
 import { Select } from '@/components/ui/Select';
+import { DAY_NAMES_AR, getWeekDates, todayStr } from '@/core/domain/dateHelpers';
 import { TOTAL_EIGHTHS, eighthsToLabel } from '@/core/domain/hizbMath';
-import { DAY_NAMES_AR, todayStr, getWeekDates } from '@/core/domain/dateHelpers';
+import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Image, TextInput, TouchableOpacity, View } from 'react-native';
 
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
 
 const MODE_OPTIONS = [
-  { label: 'من الحزب 1 إلى 60 (تصاعدي)', value: 0 },
-  { label: 'من الحزب 60 إلى 1 (تنازلي)', value: 1 },
+  { label: 'من الحزب 1 إلى الحزب 60 (تصاعدي)', value: 0 },
+  { label: 'من الحزب 60 إلى الحزب 1 (تنازلي)', value: 1 },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  
+
   // Local state for the setup form
   const [memorized, setMemorized] = useState('');
   const [modeVal, setModeVal] = useState<number>(0); // 0 = forward, 1 = reverse
@@ -50,7 +50,7 @@ export default function OnboardingScreen() {
     setWeekStartSavedDate(weekDates[0]);
     setStoreIzharDay(izharDay);
     setAppStartDate(todayStr(0));
-    
+
     // Mark onboarding complete and navigate to app
     completeOnboarding();
     router.replace('/(tabs)');
@@ -64,15 +64,15 @@ export default function OnboardingScreen() {
   return (
     <PageContainer>
       <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 40 }}>
-        <View style={{ 
-          width: 90, 
-          height: 90, 
-          backgroundColor: '#161b22', 
-          borderRadius: 24, 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          marginBottom: 20, 
-          borderWidth: 1, 
+        <View style={{
+          width: 90,
+          height: 90,
+          backgroundColor: '#161b22',
+          borderRadius: 24,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 20,
+          borderWidth: 1,
           borderColor: '#d4a843',
           shadowColor: '#d4a843',
           shadowOffset: { width: 0, height: 4 },
@@ -81,9 +81,9 @@ export default function OnboardingScreen() {
           elevation: 6,
           overflow: 'hidden'
         }}>
-          <Image 
-            source={require('../../assets/images/app-icon.png')} 
-            style={{ width: '100%', height: '100%', resizeMode: 'cover' }} 
+          <Image
+            source={require('../../assets/images/app-icon.png')}
+            style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
             defaultSource={require('../../assets/images/app-icon.png')}
           />
         </View>

@@ -1,9 +1,9 @@
-import React from 'react';
-import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Redirect, Tabs } from 'expo-router';
+import React from 'react';
 
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
-import { View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 const TAB_ICON_SIZE = 24;
 
@@ -26,52 +26,53 @@ export default function TabLayout() {
   return (
     <View style={{ flex: 1 }}>
       <Tabs
-      initialRouteName="index"
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#d4a843',
-        tabBarInactiveTintColor: '#8b949e',
-        tabBarStyle: {
-          backgroundColor: '#0d1117',
-          borderTopColor: '#30363d',
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'إعدادات',
-          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={TAB_ICON_SIZE} color={color} />,
+        initialRouteName="index"
+        backBehavior="initialRoute"
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#d4a843',
+          tabBarInactiveTintColor: '#8b949e',
+          tabBarStyle: {
+            backgroundColor: '#0d1117',
+            borderTopColor: '#30363d',
+          },
         }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: 'الخريطة',
-          tabBarIcon: ({ color }) => <Ionicons name="map-outline" size={TAB_ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="log"
-        options={{
-          title: 'السجل',
-          tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={TAB_ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="week"
-        options={{
-          title: 'الأسبوع',
-          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={TAB_ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'اليوم',
-          tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={TAB_ICON_SIZE} color={color} />,
-        }}
-      />
+      >
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'إعدادات',
+            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={TAB_ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="map"
+          options={{
+            title: 'الخريطة',
+            tabBarIcon: ({ color }) => <Ionicons name="map-outline" size={TAB_ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="log"
+          options={{
+            title: 'السجل',
+            tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={TAB_ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="week"
+          options={{
+            title: 'الأسبوع',
+            tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={TAB_ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'اليوم',
+            tabBarIcon: ({ color }) => <Ionicons name="today-outline" size={TAB_ICON_SIZE} color={color} />,
+          }}
+        />
       </Tabs>
     </View>
   );
