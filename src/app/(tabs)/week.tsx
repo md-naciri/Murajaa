@@ -3,18 +3,25 @@ import { View,  ScrollView } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { PageContainer } from '@/components/ui/PageContainer';
-import { Card } from '@/components/ui/Card';
-import { eighthsToLabel, absEighthLabel, formatEighthsRange } from '@/core/domain/hizbMath';
+import { eighthsToLabel, formatEighthsRange } from '@/core/domain/hizbMath';
 import { getWeekDates, buildWeekSchedule, formatDateLong, todayStr } from '@/core/domain/dateHelpers';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function WeekScreen() {
-  const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
-  const izharDay          = useHifzStore(s => s.izharDay);
+  const memorizedEighths     = useHifzStore(s => s.memorizedEighths);
+  const memorizedAtWeekStart = useHifzStore(s => s.memorizedAtWeekStart);
+  const weekStartSavedDate   = useHifzStore(s => s.weekStartSavedDate);
+  const memorizationMode     = useHifzStore(s => s.memorizationMode);
+  const izharDay             = useHifzStore(s => s.izharDay);
 
   const today = todayStr(0);
   const weekDates = getWeekDates(izharDay, 0);
-  const weekSchedule = buildWeekSchedule(memorizedEighths, weekDates);
+
+  // Use frozen count if the week has already synced, fallback to live progress otherwise
+  const isNewWeekCycle = weekStartSavedDate !== weekDates[0];
+  const activeReviewEighths = isNewWeekCycle ? memorizedEighths : memorizedAtWeekStart;
+
+  const weekSchedule = buildWeekSchedule(activeReviewEighths, weekDates);
 
   return (
     <PageContainer noPadding>
@@ -30,17 +37,17 @@ export default function WeekScreen() {
           </Text>
         </View>
 
-        {memorizedEighths === 0 ? (
+        {activeReviewEighths === 0 ? (
           <View style={{ backgroundColor: 'rgba(138,106,32,0.1)', borderWidth: 1, borderColor: '#8a6a20', padding: 14, borderRadius: 12 }}>
             <Text style={{ color: '#f0c96b', fontSize: 13, textAlign: 'center', lineHeight: 22 }}>
-              لا يوجد محفوظ لجدولته. الرجاء ضبط إعدادات المحفوظ من تبويب الإعدادات.
+              لا يوجد محفوظ لجدولته. الرجاء تسجيل حفظ جديد من الصفحة الرئيسية أو تعديل رصيدك في الإعدادات.
             </Text>
           </View>
         ) : (
           <View style={{ gap: 12 }}>
             {weekSchedule.map((day, index) => {
               const isToday = day.date === today;
-              const isIzhar = index === 0;
+              const isWeekStart = index === 0;
 
               return (
                 <View 
@@ -64,9 +71,9 @@ export default function WeekScreen() {
                         </View>
                       )}
                     </View>
-                    {isIzhar && (
+                    {isWeekStart && (
                       <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                        <Text style={{ color: '#c084fc', fontSize: 10, fontWeight: 'bold' }}>استظهار</Text>
+                        <Text style={{ color: '#c084fc', fontSize: 10, fontWeight: 'bold' }}>بداية الدورة</Text>
                       </View>
                     )}
                   </View>
@@ -84,7 +91,7 @@ export default function WeekScreen() {
                         المقدار: {eighthsToLabel(day.amount)}
                       </Text>
                       <Text style={{ color: '#8b949e', fontSize: 12, lineHeight: 22, textAlign: 'right' }}>
-                        {formatEighthsRange(day.eighths)}
+                        {formatEighthsRange(day.eighths, memorizationMode)}
                       </Text>
                     </View>
                   )}
@@ -97,4 +104,3 @@ export default function WeekScreen() {
     </PageContainer>
   );
 }
-

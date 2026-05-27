@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View,  TouchableOpacity, Alert, LayoutAnimation } from 'react-native';
+import { View,  TouchableOpacity, Alert, LayoutAnimation, Modal } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useFocusEffect } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PageContainer } from '@/components/ui/PageContainer';
+import { Select } from '@/components/ui/Select';
 import { DatabaseService, HifzLog } from '@/data/db/DatabaseService';
 import {
   eighthsToLabel, absEighthLabel, calcDailyReview, formatEighthsRange,
-  TOTAL_EIGHTHS, EIGHTHS_PER_HIZB,
+  TOTAL_EIGHTHS, EIGHTHS_PER_HIZB, logicalToPhysical, UNIT_OPTIONS
 } from '@/core/domain/hizbMath';
 import {
   todayStr, formatDateLong, getWeekDates, buildWeekSchedule, DAY_NAMES_AR, getAppDate, dateToStr, formatDateShort
@@ -20,61 +21,60 @@ import { Ionicons } from '@expo/vector-icons';
 export interface MissedTask {
   id: string;
   date: string;
-  type: 'izhar' | 'review';
+  type: 'review';
   amount: number;
   rangeStr: string;
   isCompleted: boolean;
 }
 
 export default function TodayScreen() {
-  const memorizedEighths  = useHifzStore(s => s.memorizedEighths);
-  const weeklyGoalEighths = useHifzStore(s => s.weeklyGoalEighths);
-  const izharDay          = useHifzStore(s => s.izharDay);
-  const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
-  const appStartDate = useHifzStore(s => s.appStartDate);
-  const setAppStartDate = useHifzStore(s => s.setAppStartDate);
+  const memorizedEighths     = useHifzStore(s => s.memorizedEighths);
+  const memorizationMode     = useHifzStore(s => s.memorizationMode);
+  const memorizedAtWeekStart = useHifzStore(s => s.memorizedAtWeekStart);
+  const weekStartSavedDate   = useHifzStore(s => s.weekStartSavedDate);
+  const izharDay             = useHifzStore(s => s.izharDay);
+  const appStartDate         = useHifzStore(s => s.appStartDate);
+
+  const addMemorizedEighths   = useHifzStore(s => s.addMemorizedEighths);
+  const setAppStartDate       = useHifzStore(s => s.setAppStartDate);
+  const setWeekStartSavedDate = useHifzStore(s => s.setWeekStartSavedDate);
+  const setMemorizedAtWeekStart = useHifzStore(s => s.setMemorizedAtWeekStart);
+
   const remindersEnabled = useHifzStore(s => s.remindersEnabled);
-  const reminderTime = useHifzStore(s => s.reminderTime);
+  const reminderTime     = useHifzStore(s => s.reminderTime);
   const setRemindersEnabled = useHifzStore(s => s.setRemindersEnabled);
 
-  const today       = todayStr(0);
-  const weekDates   = getWeekDates(izharDay, 0);
-  const isIzharDay  = today === weekDates[0];
+  const today = todayStr(0);
+  const weekDates = getWeekDates(izharDay, 0);
 
-  const dailyReview   = calcDailyReview(memorizedEighths);
-  const weekSchedule  = buildWeekSchedule(memorizedEighths, weekDates);
+  // Weekly review schedule frozen calculation
+  // If the week start has changed in real time but is not yet committed to store, 
+  // we immediately calculate active reviews using the live progress since it will update on this cycle.
+  const isNewWeekCycle = weekStartSavedDate !== weekDates[0];
+  const activeReviewEighths = isNewWeekCycle ? memorizedEighths : memorizedAtWeekStart;
+
+  const dailyReview   = calcDailyReview(activeReviewEighths);
+  const weekSchedule  = buildWeekSchedule(activeReviewEighths, weekDates);
   const todaySchedule = weekSchedule.find(d => d.date === today) ?? { eighths: [], amount: 0, isOptional: false };
 
-
+  const isWeekResetDay = today === weekDates[0];
   const quranComplete = memorizedEighths >= TOTAL_EIGHTHS;
 
-  const hizbCount = Math.floor(memorizedEighths / EIGHTHS_PER_HIZB);
-  const remEighths = memorizedEighths % EIGHTHS_PER_HIZB;
   const pct = Math.round((memorizedEighths / TOTAL_EIGHTHS) * 100);
 
   // --- Task Interaction State ---
-  const [completedIzhar, setCompletedIzhar] = useState(false);
   const [completedReview, setCompletedReview] = useState(false);
-
-  const getIzharRangeStr = (baseIdx: number) => {
-    const toIdx = Math.min(TOTAL_EIGHTHS - 1, baseIdx + weeklyGoalEighths - 1);
-    return baseIdx === toIdx 
-      ? absEighthLabel(baseIdx)
-      : `من ${absEighthLabel(baseIdx)} إلى ${absEighthLabel(toIdx)}`;
-  };
-
-  const izharBaseIdx  = completedIzhar ? Math.max(0, memorizedEighths - weeklyGoalEighths) : memorizedEighths;
-  const izharRangeStr = getIzharRangeStr(izharBaseIdx);
-
   const [missedTasks, setMissedTasks] = useState<MissedTask[]>([]);
-  
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newHifzAmount, setNewHifzAmount] = useState(1); // default +1 eighth
+
   const completedMissedIdsRef = useRef<Set<string>>(new Set());
   const lastTodayRef = useRef(today);
 
   // Initialize app start date if missing
   useEffect(() => {
     if (!appStartDate) {
-      setAppStartDate(todayStr(0)); // Record the real life today
+      setAppStartDate(todayStr(0));
     }
   }, [appStartDate]);
 
@@ -83,6 +83,13 @@ export default function TodayScreen() {
     React.useCallback(() => {
       let isActive = true;
       const fetchLogs = async () => {
+        // Commit weekly progress freeze on week cycle boundary
+        const currentWeekStart = weekDates[0];
+        if (weekStartSavedDate !== currentWeekStart) {
+          setWeekStartSavedDate(currentWeekStart);
+          setMemorizedAtWeekStart(memorizedEighths);
+        }
+
         // Clear the cache exactly when we run a fetch for a new simulated day
         if (lastTodayRef.current !== today) {
           completedMissedIdsRef.current.clear();
@@ -92,19 +99,20 @@ export default function TodayScreen() {
         const logs = await DatabaseService.getAllLogs();
         if (!isActive) return;
 
-        // 1. Today's status
+        // 1. Today's review status
         const todayLogs = logs.filter(l => l.date === today);
         const isReviewDoneToday = todayLogs.some(l => l.task_type === 'review');
-        setCompletedIzhar(todayLogs.some(l => l.task_type === 'izhar'));
         setCompletedReview(isReviewDoneToday);
 
-        // 2. Missed tasks for the last 7 days
+        // 2. Missed tasks for the last 7 days (Review logs only)
         const computedMissed: MissedTask[] = [];
         const currentWeek = getWeekDates(izharDay, 0);
         const previousWeek = getWeekDates(izharDay, -7);
+        
+        // We use activeReviewEighths (week-frozen count) for building schedule historical scanner
         const allSchedules = [
-          ...buildWeekSchedule(memorizedEighths, previousWeek),
-          ...buildWeekSchedule(memorizedEighths, currentWeek)
+          ...buildWeekSchedule(activeReviewEighths, previousWeek),
+          ...buildWeekSchedule(activeReviewEighths, currentWeek)
         ];
 
         for (let i = 1; i <= 7; i++) {
@@ -121,26 +129,8 @@ export default function TodayScreen() {
 
           const logsForPastDay = logs.filter(l => l.date === pastDateStr);
 
-          // Check Izhar
-          const isIzharDayPast = pastDateObj.getDay() === izharDay;
-          if (isIzharDayPast && !quranComplete) {
-            const isCompleted = logsForPastDay.some(l => l.task_type === 'izhar');
-            const taskId = `${pastDateStr}-izhar`;
-            
-            if (!isCompleted || completedMissedIdsRef.current.has(taskId)) {
-              computedMissed.push({
-                id: taskId,
-                date: pastDateStr,
-                type: 'izhar',
-                amount: weeklyGoalEighths,
-                rangeStr: getIzharRangeStr(memorizedEighths),
-                isCompleted
-              });
-            }
-          }
-
-          // Check Review
-          if (!daySchedule.isOptional && memorizedEighths > 0) {
+          // Check Review Only
+          if (!daySchedule.isOptional && activeReviewEighths > 0) {
             const isCompleted = logsForPastDay.some(l => l.task_type === 'review');
             const taskId = `${pastDateStr}-review`;
             
@@ -150,7 +140,7 @@ export default function TodayScreen() {
                 date: pastDateStr,
                 type: 'review',
                 amount: daySchedule.amount,
-                rangeStr: formatEighthsRange(daySchedule.eighths),
+                rangeStr: formatEighthsRange(daySchedule.eighths, memorizationMode),
                 isCompleted
               });
             }
@@ -166,12 +156,10 @@ export default function TodayScreen() {
           if (hasPermission) {
             await NotificationService.updateSchedule(true, reminderTime, isReviewDoneToday);
           } else {
-            // Attempt to request permission
             const granted = await NotificationService.requestPermissions();
             if (granted) {
               await NotificationService.updateSchedule(true, reminderTime, isReviewDoneToday);
             } else {
-              // Permission denied/revoked, automatically set toggle to OFF
               if (remindersEnabled) {
                 setRemindersEnabled(false);
               }
@@ -182,44 +170,23 @@ export default function TodayScreen() {
           await NotificationService.updateSchedule(false, reminderTime, false);
         }
       };
+
       fetchLogs();
       return () => { isActive = false; };
-    }, [today, memorizedEighths, weeklyGoalEighths, izharDay, quranComplete, appStartDate, remindersEnabled, reminderTime, setRemindersEnabled])
+    }, [today, memorizedEighths, activeReviewEighths, izharDay, appStartDate, remindersEnabled, reminderTime, setRemindersEnabled, weekStartSavedDate])
   );
 
   const handleToggleMissed = async (task: MissedTask) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     
     if (task.isCompleted) {
-      // Uncheck
       await DatabaseService.removeLog(task.date, task.type);
-      if (task.type === 'izhar') addMemorizedEighths(-weeklyGoalEighths);
       completedMissedIdsRef.current.delete(task.id);
       setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: false } : t));
     } else {
-      // Check
       await DatabaseService.addLog(task.date, task.type, task.amount, task.rangeStr);
-      if (task.type === 'izhar') addMemorizedEighths(weeklyGoalEighths);
       completedMissedIdsRef.current.add(task.id);
       setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: true } : t));
-    }
-  };
-
-  const handleToggleIzhar = async () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    if (completedIzhar) {
-      // Uncheck
-      await DatabaseService.removeLog(today, 'izhar');
-      setCompletedIzhar(false);
-      addMemorizedEighths(-weeklyGoalEighths);
-    } else {
-      // Check
-      await DatabaseService.addLog(today, 'izhar', weeklyGoalEighths, izharRangeStr);
-      setCompletedIzhar(true);
-      
-      // Auto-increment memorized total
-      addMemorizedEighths(weeklyGoalEighths);
-      // We don't trigger native Alert on Web since it looks bad, just silent completion.
     }
   };
 
@@ -232,11 +199,35 @@ export default function TodayScreen() {
       await NotificationService.updateSchedule(remindersEnabled, reminderTime, false);
     } else {
       // Check
-      const range = todaySchedule.isOptional ? '(راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع' : formatEighthsRange(todaySchedule.eighths);
+      const range = todaySchedule.isOptional 
+        ? '(راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع' 
+        : formatEighthsRange(todaySchedule.eighths, memorizationMode);
       await DatabaseService.addLog(today, 'review', todaySchedule.amount, range);
       setCompletedReview(true);
       await NotificationService.updateSchedule(remindersEnabled, reminderTime, true);
     }
+  };
+
+  const handleAddHifz = () => {
+    if (newHifzAmount <= 0) return;
+    
+    const newTotal = Math.min(TOTAL_EIGHTHS, memorizedEighths + newHifzAmount);
+    const addedAmount = newTotal - memorizedEighths;
+    
+    if (addedAmount <= 0) {
+      Alert.alert('رصيد الحفظ ممتلئ', 'لقد أتممت حفظ القرآن بالكامل بالفعل! مبارك لك.', [{ text: 'حسناً' }]);
+      setShowAddModal(false);
+      return;
+    }
+
+    addMemorizedEighths(addedAmount);
+    setShowAddModal(false);
+
+    Alert.alert(
+      'تم تسجيل الحفظ الجديد 🎉',
+      `تمت إضافة ${eighthsToLabel(addedAmount)} بنجاح إلى رصيد حفظك! سيتم جدولة مراجعتها عند بداية أسبوع المراجعة القادم.`,
+      [{ text: 'حسناً' }]
+    );
   };
 
   return (
@@ -256,11 +247,13 @@ export default function TodayScreen() {
           <Text style={statValue}>
             {memorizedEighths > 0 ? eighthsToLabel(memorizedEighths) : '—'}
           </Text>
-          <Text style={statLabel}>المحفوظ</Text>
+          <Text style={statLabel}>رصيد الحفظ</Text>
         </View>
         <View style={statCard}>
-          <Text style={statValue}>{eighthsToLabel(weeklyGoalEighths)}</Text>
-          <Text style={statLabel}>مقدار الحفظ الأسبوعي</Text>
+          <Text style={statValue}>
+            {memorizedAtWeekStart > 0 ? eighthsToLabel(memorizedAtWeekStart) : '—'}
+          </Text>
+          <Text style={statLabel}>حفظ المراجعة الحالي</Text>
         </View>
         <View style={statCard}>
           <Text style={statValue}>{eighthsToLabel(dailyReview)}</Text>
@@ -277,6 +270,38 @@ export default function TodayScreen() {
         />
       </Card>
 
+      {/* Add New Memorization Call-to-Action */}
+      {!quranComplete && (
+        <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#30363d', borderRadius: 16, padding: 16, marginBottom: 16, flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold', textAlign: 'right', marginBottom: 4 }}>
+              سجلت حفظاً جديداً؟
+            </Text>
+            <Text style={{ color: '#8b949e', fontSize: 11, textAlign: 'right', lineHeight: 18 }}>
+              أضف محفوظك الجديد لتحديث خريطة ختمتك. سيتم إدراج الجديد في جدول المراجعة الأسبوع القادم.
+            </Text>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowAddModal(true)}
+            style={{
+              backgroundColor: 'rgba(212,168,67,0.15)',
+              borderWidth: 1,
+              borderColor: '#d4a843',
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              flexDirection: 'row-reverse',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <Ionicons name="add-circle" size={18} color="#f0c96b" />
+            <Text style={{ color: '#f0c96b', fontWeight: 'bold', fontSize: 14 }}>إضافة حفظ</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* No-data prompt */}
       {memorizedEighths === 0 && (
         <View style={{ backgroundColor: 'rgba(138,106,32,0.1)', borderWidth: 1, borderColor: '#8a6a20', padding: 14, borderRadius: 12, marginBottom: 16 }}>
@@ -285,7 +310,7 @@ export default function TodayScreen() {
             <Text style={{ color: '#f0c96b', fontSize: 13, fontWeight: 'bold' }}>مرحباً بك في تطبيق مراجعة</Text>
           </View>
           <Text style={{ color: '#f0c96b', fontSize: 13, lineHeight: 22, textAlign: 'right' }}>
-            ابدأ بضبط إعداداتك من تبويب الإعدادات وتحديد ما حفظته حتى الآن.
+            ابدأ بضبط إعداداتك من تبويب الإعدادات أو اضغط على «إضافة حفظ» أعلاه لتسجيل حفظك الأول.
           </Text>
         </View>
       )}
@@ -298,10 +323,10 @@ export default function TodayScreen() {
             <Ionicons name="calendar" size={18} color="#d4a843" />
             <Text style={{ color: '#d4a843', fontWeight: 'bold' }}>{formatDateLong(today)}</Text>
           </View>
-          {isIzharDay && (
+          {isWeekResetDay && (
             <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
               <Ionicons name="sparkles" size={12} color="#c084fc" />
-              <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold' }}>يوم الاستظهار</Text>
+              <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold' }}>بداية المراجعة الأسبوعية</Text>
             </View>
           )}
         </View>
@@ -317,9 +342,9 @@ export default function TodayScreen() {
             >
               <View style={{ flex: 1, opacity: task.isCompleted ? 0.6 : 1 }}>
                 <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Ionicons name={task.type === 'izhar' ? 'book-outline' : 'sync-outline'} size={14} color="#f87171" />
+                  <Ionicons name="sync-outline" size={14} color="#f87171" />
                   <Text style={{ color: '#f87171', fontSize: 11, fontWeight: 'bold', textAlign: 'right', textDecorationLine: task.isCompleted ? 'line-through' : 'none' }}>
-                    {task.type === 'izhar' ? 'استظهار متأخر' : 'مراجعة متأخرة'} — {eighthsToLabel(task.amount)} ({formatDateShort(task.date)})
+                    مراجعة متأخرة — {eighthsToLabel(task.amount)} ({formatDateShort(task.date)})
                   </Text>
                 </View>
                 <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: task.isCompleted ? 'line-through' : 'none' }}>
@@ -332,35 +357,11 @@ export default function TodayScreen() {
             </TouchableOpacity>
           ))}
 
-          {/* Izhar task */}
-          {isIzharDay && !quranComplete && (
-            <TouchableOpacity 
-              activeOpacity={0.7}
-              onPress={handleToggleIzhar}
-              style={taskCard(completedIzhar ? 'rgba(168,85,247,0.15)' : '#21262d', completedIzhar ? 'rgba(168,85,247,0.6)' : 'rgba(168,85,247,0.3)')}
-            >
-              <View style={{ flex: 1, opacity: completedIzhar ? 0.6 : 1 }}>
-                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Ionicons name="book" size={14} color="#c084fc" />
-                  <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold', textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
-                    استظهار الحفظ الجديد — {eighthsToLabel(weeklyGoalEighths)}
-                  </Text>
-                </View>
-                <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: completedIzhar ? 'line-through' : 'none' }}>
-                  {izharRangeStr}
-                </Text>
-              </View>
-              <View style={[checkbox, completedIzhar && { backgroundColor: '#c084fc', borderColor: '#c084fc' }]}>
-                {completedIzhar && <Ionicons name="checkmark" size={16} color="#0d1117" style={{ marginTop: 1, marginLeft: 1 }} />}
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {isIzharDay && quranComplete && (
+          {quranComplete && (
             <View style={{ backgroundColor: '#21262d', borderWidth: 1, borderColor: 'rgba(234,179,8,0.4)', borderRadius: 12, padding: 16 }}>
               <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Ionicons name="trophy" size={18} color="#f0c96b" />
-                <Text style={{ color: '#f0c96b', textAlign: 'center', fontWeight: 'bold' }}>القرآن محفوظ بالكامل — مبارك!</Text>
+                <Text style={{ color: '#f0c96b', textAlign: 'center', fontWeight: 'bold' }}>القرآن محفوظ بالكامل — مبارك لك الختم!</Text>
               </View>
             </View>
           )}
@@ -379,11 +380,11 @@ export default function TodayScreen() {
                 </Text>
               </View>
               <Text style={{ color: '#e6edf3', fontSize: 13, lineHeight: 22, textAlign: 'right', textDecorationLine: completedReview ? 'line-through' : 'none' }}>
-                {memorizedEighths === 0
-                  ? 'لا يوجد محفوظ بعد'
+                {activeReviewEighths === 0
+                  ? 'لا يوجد محفوظ للمراجعة بعد'
                   : todaySchedule.isOptional 
                     ? 'راجع ما تراه يحتاج إلى تثبيت (تمت مراجعة المحفوظ بالكامل هذا الأسبوع)' 
-                    : formatEighthsRange(todaySchedule.eighths)
+                    : formatEighthsRange(todaySchedule.eighths, memorizationMode)
                 }
               </Text>
             </View>
@@ -395,10 +396,55 @@ export default function TodayScreen() {
 
         <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#30363d' }}>
           <Text style={{ color: '#8b949e', fontSize: 12, textAlign: 'center' }}>
-            يوم الاستظهار: {DAY_NAMES_AR[izharDay]}
+            يوم بداية المراجعة الأسبوعية: {DAY_NAMES_AR[izharDay]}
           </Text>
         </View>
       </View>
+
+      {/* Add Hifz Modal */}
+      <Modal
+        transparent={true}
+        visible={showAddModal}
+        animationType="fade"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#30363d', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 }}>
+            <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ color: '#e6edf3', fontSize: 18, fontWeight: 'bold' }}>تسجيل حفظ جديد</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Ionicons name="close" size={24} color="#8b949e" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right', marginBottom: 16, lineHeight: 20 }}>
+              اختر مقدار الحفظ الجديد الذي أنجزته اليوم لإضافته لختمتك:
+            </Text>
+
+            <View style={{ marginBottom: 24 }}>
+              <Select
+                selectedValue={newHifzAmount}
+                onValueChange={setNewHifzAmount}
+                options={UNIT_OPTIONS}
+              />
+            </View>
+
+            <View style={{ backgroundColor: 'rgba(212,168,67,0.1)', padding: 12, borderRadius: 8, marginBottom: 24, alignItems: 'center' }}>
+              <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 4 }}>المجموع بعد الإضافة</Text>
+              <Text style={{ color: '#f0c96b', fontWeight: 'bold', fontSize: 15, textAlign: 'center' }}>
+                {eighthsToLabel(Math.min(TOTAL_EIGHTHS, memorizedEighths + newHifzAmount))}
+              </Text>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#d4a843', paddingVertical: 14, borderRadius: 8, alignItems: 'center' }}
+              onPress={handleAddHifz}
+            >
+              <Text style={{ color: '#0d1117', fontWeight: 'bold', fontSize: 16 }}>تسجيل الحفظ الجديد</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </PageContainer>
   );
 }
@@ -447,4 +493,3 @@ function taskCard(bg: string, border: string): object {
     padding: 14,
   };
 }
-

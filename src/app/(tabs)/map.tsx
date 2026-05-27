@@ -8,6 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function MapScreen() {
   const memorizedEighths = useHifzStore(s => s.memorizedEighths);
+  const memorizationMode = useHifzStore(s => s.memorizationMode);
+  
   const [selectedHizb, setSelectedHizb] = useState<number | null>(null);
 
   const hizbCount = Math.floor(memorizedEighths / EIGHTHS_PER_HIZB);
@@ -21,13 +23,19 @@ export default function MapScreen() {
     let borderColor = '#30363d';
     let progress = 0; // 0 to 8
 
-    if (hizbNumber <= hizbCount) {
-      // Fully memorized
+    const isFull = memorizationMode === 'forward'
+      ? hizbNumber <= hizbCount
+      : hizbNumber >= 60 - hizbCount + 1;
+
+    const isPartial = memorizationMode === 'forward'
+      ? hizbNumber === hizbCount + 1 && remEighths > 0
+      : hizbNumber === 60 - hizbCount && remEighths > 0;
+
+    if (isFull) {
       bgColor = 'rgba(212,168,67,0.15)'; // Gold tint
       borderColor = '#d4a843';
       progress = 8;
-    } else if (hizbNumber === hizbCount + 1 && remEighths > 0) {
-      // Partially memorized
+    } else if (isPartial) {
       bgColor = 'rgba(46,160,67,0.15)'; // Green tint
       borderColor = '#2ea043';
       progress = remEighths;
@@ -69,11 +77,23 @@ export default function MapScreen() {
     );
   };
 
+  const isSelectedHizbFull = selectedHizb !== null && (
+    memorizationMode === 'forward'
+      ? selectedHizb <= hizbCount
+      : selectedHizb >= 60 - hizbCount + 1
+  );
+
+  const isSelectedHizbPartial = selectedHizb !== null && (
+    memorizationMode === 'forward'
+      ? selectedHizb === hizbCount + 1 && remEighths > 0
+      : selectedHizb === 60 - hizbCount && remEighths > 0
+  );
+
   const selectedData = selectedHizb ? {
     number: selectedHizb,
-    isFull: selectedHizb <= hizbCount,
-    isPartial: selectedHizb === hizbCount + 1 && remEighths > 0,
-    eighths: selectedHizb <= hizbCount ? 8 : (selectedHizb === hizbCount + 1 ? remEighths : 0)
+    isFull: isSelectedHizbFull,
+    isPartial: isSelectedHizbPartial,
+    eighths: isSelectedHizbFull ? 8 : (isSelectedHizbPartial ? remEighths : 0)
   } : null;
 
   return (
@@ -157,4 +177,3 @@ export default function MapScreen() {
     </PageContainer>
   );
 }
-

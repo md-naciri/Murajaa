@@ -1,28 +1,35 @@
 import React, { useState } from 'react';
-import { View,  TextInput, TouchableOpacity, Image } from 'react-native';
+import { View,  TextInput, TouchableOpacity } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useRouter } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { PageContainer } from '@/components/ui/PageContainer';
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
-import { TOTAL_EIGHTHS, UNIT_OPTIONS, eighthsToLabel, EIGHTHS_PER_HIZB } from '@/core/domain/hizbMath';
-import { DAY_NAMES_AR, todayStr } from '@/core/domain/dateHelpers';
+import { TOTAL_EIGHTHS, eighthsToLabel } from '@/core/domain/hizbMath';
+import { DAY_NAMES_AR, todayStr, getWeekDates } from '@/core/domain/dateHelpers';
 import { Ionicons } from '@expo/vector-icons';
 
 const DAY_OPTIONS = DAY_NAMES_AR.map((name, i) => ({ label: name, value: i }));
+
+const MODE_OPTIONS = [
+  { label: 'من الحزب 1 إلى 60 (تصاعدي)', value: 0 },
+  { label: 'من الحزب 60 إلى 1 (تنازلي)', value: 1 },
+];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   
   // Local state for the setup form
   const [memorized, setMemorized] = useState('');
-  const [weeklyGoal, setWeeklyGoal] = useState<number>(2);
-  const [izharDay, setIzharDay] = useState<number>(4); // Thursday
+  const [modeVal, setModeVal] = useState<number>(0); // 0 = forward, 1 = reverse
+  const [izharDay, setIzharDay] = useState<number>(4); // Thursday default
 
   // Store actions
   const setMemorizedEighths = useHifzStore(s => s.setMemorizedEighths);
-  const setStoreWeeklyGoal = useHifzStore(s => s.setWeeklyGoal);
+  const setMemorizationMode = useHifzStore(s => s.setMemorizationMode);
+  const setMemorizedAtWeekStart = useHifzStore(s => s.setMemorizedAtWeekStart);
+  const setWeekStartSavedDate = useHifzStore(s => s.setWeekStartSavedDate);
   const setStoreIzharDay = useHifzStore(s => s.setIzharDay);
   const completeOnboarding = useHifzStore(s => s.completeOnboarding);
   const setAppStartDate = useHifzStore(s => s.setAppStartDate);
@@ -33,9 +40,14 @@ export default function OnboardingScreen() {
     if (isNaN(memVal) || memVal < 0) memVal = 0;
     memVal = Math.min(TOTAL_EIGHTHS, memVal);
 
+    const mode = modeVal === 0 ? 'forward' : 'reverse';
+    const weekDates = getWeekDates(izharDay, 0);
+
     // Save everything to store
     setMemorizedEighths(memVal);
-    setStoreWeeklyGoal(weeklyGoal);
+    setMemorizationMode(mode);
+    setMemorizedAtWeekStart(memVal);
+    setWeekStartSavedDate(weekDates[0]);
     setStoreIzharDay(izharDay);
     setAppStartDate(todayStr(0));
     
@@ -92,14 +104,14 @@ export default function OnboardingScreen() {
           <View style={{ marginBottom: 20 }} />
         )}
 
-        {/* Weekly Goal */}
-        <Text style={label}>مقدار الحفظ الأسبوعي:</Text>
+        {/* Memorization Mode */}
+        <Text style={label}>اتجاه الحفظ والمراجعة:</Text>
         <View style={{ marginBottom: 20 }}>
-          <Select selectedValue={weeklyGoal} onValueChange={setWeeklyGoal} options={UNIT_OPTIONS} />
+          <Select selectedValue={modeVal} onValueChange={setModeVal} options={MODE_OPTIONS} />
         </View>
 
         {/* Izhar Day */}
-        <Text style={label}>يوم الاستظهار:</Text>
+        <Text style={label}>يوم بداية المراجعة الأسبوعية:</Text>
         <View style={{ marginBottom: 20 }}>
           <Select selectedValue={izharDay} onValueChange={setIzharDay} options={DAY_OPTIONS} />
         </View>
@@ -128,4 +140,3 @@ export default function OnboardingScreen() {
 }
 
 const label: object = { color: '#8b949e', fontSize: 13, marginBottom: 8, textAlign: 'right' };
-

@@ -24,6 +24,24 @@ export const UNIT_OPTIONS = [
 // PURE HELPERS
 // ============================================================
 
+/**
+ * Maps a logical progress index (0 to 479) to the physical Quran absolute eighth index (0 to 479).
+ * - Forward Mode: logical 0 is physical 0 (Hizb 1 Eighth 1)
+ * - Reverse Mode: logical 0 is physical 472 (Hizb 60 Eighth 1)
+ */
+export function logicalToPhysical(logicalIdx: number, mode: 'forward' | 'reverse'): number {
+  if (mode === 'forward') {
+    return logicalIdx;
+  } else {
+    // Reverse mode: logicalIdx 0..7 -> Hizb 60 physicalIdx 472..479
+    // hizbIdx moves backwards from 59 down to 0
+    const logicalHizbOffset = Math.floor(logicalIdx / EIGHTHS_PER_HIZB);
+    const physicalHizbIdx = 59 - logicalHizbOffset;
+    const eighthIdx = logicalIdx % EIGHTHS_PER_HIZB;
+    return physicalHizbIdx * EIGHTHS_PER_HIZB + eighthIdx;
+  }
+}
+
 export function eighthsToLabel(eighths: number): string {
   if (eighths <= 0) return "—";
   const hizb = Math.floor(eighths / EIGHTHS_PER_HIZB);
@@ -62,25 +80,28 @@ export function absEighthLabel(absIdx: number): string {
   return `الثمن ${eighthName(eighthIdx)} من الحزب ${hizbNum}`;
 }
 
-export function formatEighthsRange(eighths: number[]): string {
-  if (!eighths || eighths.length === 0) return '—';
-  if (eighths.length === 1) return absEighthLabel(eighths[0]);
+export function formatEighthsRange(logicalEighths: number[], mode: 'forward' | 'reverse' = 'forward'): string {
+  if (!logicalEighths || logicalEighths.length === 0) return '—';
+  
+  // Map logical coordinates to actual physical absolute coordinates
+  const physicalEighths = logicalEighths.map(e => logicalToPhysical(e, mode));
+  
+  if (physicalEighths.length === 1) return absEighthLabel(physicalEighths[0]);
 
-  // Check if continuous
+  // Check if logically continuous
   let isContinuous = true;
-  for (let i = 1; i < eighths.length; i++) {
-    // If next eighth is not exactly previous + 1 (handling potential edge cases)
-    if (eighths[i] !== eighths[i - 1] + 1) {
+  for (let i = 1; i < logicalEighths.length; i++) {
+    if (logicalEighths[i] !== logicalEighths[i - 1] + 1) {
       isContinuous = false;
       break;
     }
   }
 
   if (isContinuous) {
-    return `من ${absEighthLabel(eighths[0])} إلى ${absEighthLabel(eighths[eighths.length - 1])}`;
+    return `من ${absEighthLabel(physicalEighths[0])} إلى ${absEighthLabel(physicalEighths[physicalEighths.length - 1])}`;
   }
 
-  return eighths.map(e => absEighthLabel(e)).join(' · ');
+  return physicalEighths.map(e => absEighthLabel(e)).join(' · ');
 }
 
 export function calcDailyReview(totalEighths: number): number {

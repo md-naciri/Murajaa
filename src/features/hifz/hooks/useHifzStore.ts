@@ -3,8 +3,10 @@ import { storageAdapter } from './storageAdapter';
 
 export interface HifzState {
   memorizedEighths: number;
-  weeklyGoalEighths: number;
-  izharDay: number; // 0-6 (Sunday-Saturday)
+  memorizationMode: 'forward' | 'reverse'; // direction: forward (1->60) or reverse (60->1)
+  memorizedAtWeekStart: number; // frozen progress count at the start of the current week cycle
+  weekStartSavedDate: string | null; // the week start date string mapped to the frozen count
+  izharDay: number; // 0-6 (Sunday-Saturday) representing start of the weekly review cycle
   hasCompletedOnboarding: boolean;
   _hasHydrated: boolean; // Flag to indicate if initial load from storage is done
   appStartDate: string | null; // The date the app was first setup
@@ -14,7 +16,9 @@ export interface HifzState {
 
 export interface HifzActions {
   setMemorizedEighths: (amount: number) => void;
-  setWeeklyGoal: (amount: number) => void;
+  setMemorizationMode: (mode: 'forward' | 'reverse') => void;
+  setMemorizedAtWeekStart: (amount: number) => void;
+  setWeekStartSavedDate: (dateStr: string | null) => void;
   setIzharDay: (day: number) => void;
   addMemorizedEighths: (amount: number) => void;
   completeOnboarding: () => void;
@@ -26,7 +30,9 @@ export interface HifzActions {
 
 export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   memorizedEighths: 0,
-  weeklyGoalEighths: 2,
+  memorizationMode: 'forward',
+  memorizedAtWeekStart: 0,
+  weekStartSavedDate: null,
   izharDay: 4, // Thursday default
   hasCompletedOnboarding: false,
   _hasHydrated: false,
@@ -35,7 +41,9 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   reminderTime: '20:00',
 
   setMemorizedEighths: (amount) => set({ memorizedEighths: amount }),
-  setWeeklyGoal: (amount) => set({ weeklyGoalEighths: amount }),
+  setMemorizationMode: (mode) => set({ memorizationMode: mode }),
+  setMemorizedAtWeekStart: (amount) => set({ memorizedAtWeekStart: amount }),
+  setWeekStartSavedDate: (dateStr) => set({ weekStartSavedDate: dateStr }),
   setIzharDay: (day) => set({ izharDay: day }),
   addMemorizedEighths: (amount) => set((state) => ({ 
     memorizedEighths: Math.max(0, state.memorizedEighths + amount)
@@ -74,7 +82,9 @@ useHifzStore.subscribe((state, prevState) => {
   // Only save if the actual data changed
   if (
     state.memorizedEighths !== prevState.memorizedEighths ||
-    state.weeklyGoalEighths !== prevState.weeklyGoalEighths ||
+    state.memorizationMode !== prevState.memorizationMode ||
+    state.memorizedAtWeekStart !== prevState.memorizedAtWeekStart ||
+    state.weekStartSavedDate !== prevState.weekStartSavedDate ||
     state.izharDay !== prevState.izharDay ||
     state.hasCompletedOnboarding !== prevState.hasCompletedOnboarding ||
     state.remindersEnabled !== prevState.remindersEnabled ||
@@ -82,7 +92,9 @@ useHifzStore.subscribe((state, prevState) => {
   ) {
     const stateToSave = {
       memorizedEighths: state.memorizedEighths,
-      weeklyGoalEighths: state.weeklyGoalEighths,
+      memorizationMode: state.memorizationMode,
+      memorizedAtWeekStart: state.memorizedAtWeekStart,
+      weekStartSavedDate: state.weekStartSavedDate,
       izharDay: state.izharDay,
       hasCompletedOnboarding: state.hasCompletedOnboarding,
       appStartDate: state.appStartDate,
