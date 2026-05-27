@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View,  TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput, TouchableOpacity, Image } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
 import { useRouter } from 'expo-router';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
@@ -64,8 +64,28 @@ export default function OnboardingScreen() {
   return (
     <PageContainer>
       <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 40 }}>
-        <View style={{ width: 80, height: 80, backgroundColor: '#161b22', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#d4a843' }}>
-          <Ionicons name="book" size={40} color="#d4a843" />
+        <View style={{ 
+          width: 90, 
+          height: 90, 
+          backgroundColor: '#161b22', 
+          borderRadius: 24, 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          marginBottom: 20, 
+          borderWidth: 1, 
+          borderColor: '#d4a843',
+          shadowColor: '#d4a843',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 10,
+          elevation: 6,
+          overflow: 'hidden'
+        }}>
+          <Image 
+            source={require('../../assets/images/app-icon.png')} 
+            style={{ width: '100%', height: '100%', resizeMode: 'cover' }} 
+            defaultSource={require('../../assets/images/app-icon.png')}
+          />
         </View>
         <Text style={{ color: '#f0c96b', fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>مرحبا بك في Murajaa</Text>
         <Text style={{ color: '#8b949e', fontSize: 14, textAlign: 'center', paddingHorizontal: 20, lineHeight: 22 }}>
