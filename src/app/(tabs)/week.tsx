@@ -1,18 +1,18 @@
-import React from 'react';
-import { View,  ScrollView } from 'react-native';
 import { AppText as Text } from '@/components/ui/AppText';
-import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { PageContainer } from '@/components/ui/PageContainer';
+import { buildWeekSchedule, formatDateLong, getWeekDates, todayStr } from '@/core/domain/dateHelpers';
 import { eighthsToLabel, formatEighthsRange } from '@/core/domain/hizbMath';
-import { getWeekDates, buildWeekSchedule, formatDateLong, todayStr } from '@/core/domain/dateHelpers';
+import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { ScrollView, View } from 'react-native';
 
 export default function WeekScreen() {
-  const memorizedEighths     = useHifzStore(s => s.memorizedEighths);
+  const memorizedEighths = useHifzStore(s => s.memorizedEighths);
   const memorizedAtWeekStart = useHifzStore(s => s.memorizedAtWeekStart);
-  const weekStartSavedDate   = useHifzStore(s => s.weekStartSavedDate);
-  const memorizationMode     = useHifzStore(s => s.memorizationMode);
-  const izharDay             = useHifzStore(s => s.izharDay);
+  const weekStartSavedDate = useHifzStore(s => s.weekStartSavedDate);
+  const memorizationMode = useHifzStore(s => s.memorizationMode);
+  const izharDay = useHifzStore(s => s.izharDay);
 
   const today = todayStr(0);
   const weekDates = getWeekDates(izharDay, 0);
@@ -33,7 +33,7 @@ export default function WeekScreen() {
             البرنامج الأسبوعي
           </Text>
           <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'center' }}>
-            توزيع مراجعة محفوظك على أيام الأسبوع 
+            توزيع مراجعة محفوظك على أيام الأسبوع
           </Text>
         </View>
 
@@ -50,7 +50,7 @@ export default function WeekScreen() {
               const isWeekStart = index === 0;
 
               return (
-                <View 
+                <View
                   key={day.date}
                   style={{
                     backgroundColor: isToday ? 'rgba(46,160,67,0.1)' : '#161b22',
@@ -73,7 +73,7 @@ export default function WeekScreen() {
                     </View>
                     {isWeekStart && (
                       <View style={{ backgroundColor: 'rgba(168,85,247,0.15)', borderWidth: 1, borderColor: 'rgba(168,85,247,0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                        <Text style={{ color: '#c084fc', fontSize: 10, fontWeight: 'bold' }}>بداية الدورة</Text>
+                        <Text style={{ color: '#c084fc', fontSize: 10, fontWeight: 'bold' }}>بداية دورة المراجعة</Text>
                       </View>
                     )}
                   </View>
