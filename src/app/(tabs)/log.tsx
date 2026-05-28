@@ -57,18 +57,34 @@ export default function LogScreen() {
 
   const renderItem = ({ item }: { item: HifzLog }) => {
     const isIzhar = item.task_type === 'izhar';
+    const isMemo = item.task_type === 'memorization';
+    
+    let iconName: any = 'sync';
+    let iconColor = '#2ea043';
+    let title = 'تم إنجاز المراجعة اليومية';
+
+    if (isIzhar) {
+      iconName = 'star';
+      iconColor = '#c084fc';
+      title = 'تم استظهار الحفظ الجديد';
+    } else if (isMemo) {
+      iconName = 'add-circle';
+      iconColor = '#d4a843';
+      title = 'إضافة حفظ جديد';
+    }
+
     return (
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#161b22', padding: 16, borderBottomWidth: 1, borderBottomColor: '#30363d' }}>
         <View style={{ width: 40, alignItems: 'center' }}>
           <Ionicons
-            name={isIzhar ? 'star' : 'sync'}
+            name={iconName}
             size={20}
-            color={isIzhar ? '#c084fc' : '#2ea043'}
+            color={iconColor}
           />
         </View>
         <View style={{ flex: 1, marginLeft: 16 }}>
           <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold', textAlign: 'right' }}>
-            {isIzhar ? 'تم استظهار الحفظ الجديد' : 'تم إنجاز المراجعة اليومية'}
+            {title}
           </Text>
           <Text style={{ color: '#8b949e', fontSize: 12, marginTop: 4, textAlign: 'right' }}>
             {item.range_string ? item.range_string : `المقدار: ${eighthsToLabel(item.eighths_amount)}`}

@@ -3,9 +3,10 @@ import * as SQLite from 'expo-sqlite';
 export interface HifzLog {
   id?: number | string;
   date: string; // YYYY-MM-DD
-  task_type: 'izhar' | 'review';
+  task_type: 'izhar' | 'review' | 'memorization';
   eighths_amount: number;
   range_string?: string;
+  for_date?: string;
   created_at?: string;
 }
 
@@ -24,6 +25,7 @@ class DBServiceNative {
               task_type TEXT NOT NULL,
               eighths_amount INTEGER NOT NULL,
               range_string TEXT,
+              for_date TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
           `);
@@ -33,6 +35,17 @@ class DBServiceNative {
             await db.execAsync(`ALTER TABLE hifz_log ADD COLUMN range_string TEXT;`);
           } catch (e) {
             // Ignore error if column already exists
+          }
+
+          // Migration: Add for_date if missing and backfill
+          try {
+            await db.execAsync(`ALTER TABLE hifz_log ADD COLUMN for_date TEXT;`);
+            await db.execAsync(`UPDATE hifz_log SET for_date = date WHERE for_date IS NULL;`);
+          } catch (e) {
+            // Ignore error if column already exists
+            try {
+              await db.execAsync(`UPDATE hifz_log SET for_date = date WHERE for_date IS NULL;`);
+            } catch (e2) {}
           }
           return db;
         } catch (error) {
@@ -49,12 +62,13 @@ class DBServiceNative {
     await this.getDb();
   }
 
-  async addLog(date: string, taskType: 'izhar' | 'review', eighthsAmount: number, rangeString?: string): Promise<void> {
+  async addLog(date: string, taskType: 'izhar' | 'review' | 'memorization', eighthsAmount: number, rangeString?: string, forDate?: string): Promise<void> {
     try {
       const db = await this.getDb();
+      const actualForDate = forDate || date;
       await db.runAsync(
-        'INSERT INTO hifz_log (date, task_type, eighths_amount, range_string) VALUES ($date, $task, $amount, $range)',
-        { $date: date, $task: taskType, $amount: eighthsAmount, $range: rangeString || null }
+        'INSERT INTO hifz_log (date, task_type, eighths_amount, range_string, for_date) VALUES ($date, $task, $amount, $range, $forDate)',
+        { $date: date, $task: taskType, $amount: eighthsAmount, $range: rangeString || null, $forDate: actualForDate }
       );
     } catch (error) {
       console.error('SQLite insert error:', error);
@@ -65,7 +79,7 @@ class DBServiceNative {
     try {
       const db = await this.getDb();
       return await db.getAllAsync<HifzLog>(
-        'SELECT * FROM hifz_log WHERE date = $date ORDER BY created_at DESC',
+        'SELECT * FROM hifz_log WHERE for_date = $date ORDER BY created_at DESC',
         { $date: date }
       );
     } catch (error) {
@@ -84,12 +98,12 @@ class DBServiceNative {
     }
   }
 
-  async removeLog(date: string, taskType: 'izhar' | 'review'): Promise<void> {
+  async removeLog(forDate: string, taskType: 'izhar' | 'review' | 'memorization'): Promise<void> {
     try {
       const db = await this.getDb();
       await db.runAsync(
-        'DELETE FROM hifz_log WHERE date = $date AND task_type = $task',
-        { $date: date, $task: taskType }
+        'DELETE FROM hifz_log WHERE for_date = $forDate AND task_type = $task',
+        { $forDate: forDate, $task: taskType }
       );
     } catch (error) {
       console.error('SQLite delete error:', error);

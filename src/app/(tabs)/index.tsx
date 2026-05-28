@@ -26,7 +26,7 @@ import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, LayoutAnimation, Modal, TouchableOpacity, View } from 'react-native';
+import { Alert, LayoutAnimation, Modal, TouchableOpacity, View, TextInput } from 'react-native';
 
 export interface MissedTask {
   id: string;
@@ -77,6 +77,8 @@ export default function TodayScreen() {
   const [missedTasks, setMissedTasks] = useState<MissedTask[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newHifzAmount, setNewHifzAmount] = useState(1); // default +1 eighth
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState<{ amount: number; range: string } | null>(null);
 
   const completedMissedIdsRef = useRef<Set<string>>(new Set());
   const lastTodayRef = useRef(today);
@@ -194,7 +196,7 @@ export default function TodayScreen() {
       completedMissedIdsRef.current.delete(task.id);
       setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: false } : t));
     } else {
-      await DatabaseService.addLog(task.date, task.type, task.amount, task.rangeStr);
+      await DatabaseService.addLog(today, task.type, task.amount, task.rangeStr, task.date);
       completedMissedIdsRef.current.add(task.id);
       setMissedTasks(prev => prev.map(t => t.id === task.id ? { ...t, isCompleted: true } : t));
     }
@@ -230,14 +232,18 @@ export default function TodayScreen() {
       return;
     }
 
+    const logicalEighths = Array.from({ length: addedAmount }, (_, i) => memorizedEighths + i);
+    const rangeStr = formatEighthsRange(logicalEighths, memorizationMode);
+
     addMemorizedEighths(addedAmount);
+    
+    // Log the memorization using the updated DatabaseService with the exact range
+    DatabaseService.addLog(today, 'memorization', addedAmount, rangeStr);
+    
     setShowAddModal(false);
 
-    Alert.alert(
-      'تم تسجيل الحفظ الجديد 🎉',
-      `تمت إضافة ${eighthsToLabel(addedAmount)} بنجاح إلى رصيد حفظك! سيتم جدولة مراجعتها عند بداية أسبوع المراجعة القادم.`,
-      [{ text: 'حسناً' }]
-    );
+    setSuccessData({ amount: addedAmount, range: rangeStr });
+    setShowSuccessModal(true);
   };
 
   return (
@@ -451,6 +457,44 @@ export default function TodayScreen() {
               onPress={handleAddHifz}
             >
               <Text style={{ color: '#0d1117', fontWeight: 'bold', fontSize: 16 }}>تسجيل الحفظ الجديد</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        transparent={true}
+        visible={showSuccessModal}
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#30363d', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(46,160,67,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Ionicons name="checkmark-circle" size={40} color="#2ea043" />
+            </View>
+            
+            <Text style={{ color: '#e6edf3', fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
+              تم تسجيل الحفظ الجديد 🎉
+            </Text>
+            
+            <Text style={{ color: '#8b949e', fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
+              تمت إضافة <Text style={{ color: '#f0c96b', fontWeight: 'bold' }}>{successData ? eighthsToLabel(successData.amount) : ''}</Text> بنجاح إلى رصيد حفظك!
+            </Text>
+
+            {successData && successData.range && (
+              <View style={{ backgroundColor: '#0d1117', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#30363d', marginBottom: 24, width: '100%' }}>
+                <Text style={{ color: '#8b949e', fontSize: 12, textAlign: 'center', marginBottom: 4 }}>نطاق الحفظ الجديد</Text>
+                <Text style={{ color: '#e6edf3', fontSize: 13, textAlign: 'center', lineHeight: 20 }}>{successData.range}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={{ backgroundColor: '#d4a843', paddingVertical: 14, borderRadius: 8, alignItems: 'center', width: '100%' }}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={{ color: '#0d1117', fontWeight: 'bold', fontSize: 16 }}>حسناً</Text>
             </TouchableOpacity>
           </View>
         </View>
