@@ -23,6 +23,7 @@ import {
 import { DatabaseService } from '@/data/db/DatabaseService';
 import * as NotificationService from '@/data/services/NotificationService';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -44,6 +45,12 @@ export default function TodayScreen() {
   const weekStartSavedDate = useHifzStore(s => s.weekStartSavedDate);
   const izharDay = useHifzStore(s => s.izharDay);
   const appStartDate = useHifzStore(s => s.appStartDate);
+
+  // Auth Store
+  const isAnonymous = useAuthStore(s => s.isAnonymous);
+  const dismissedLinkingBanner = useAuthStore(s => s.dismissedLinkingBanner);
+  const dismissBanner = useAuthStore(s => s.dismissBanner);
+  const linkGoogleAccount = useAuthStore(s => s.linkGoogleAccount);
 
   const addMemorizedEighths = useHifzStore(s => s.addMemorizedEighths);
   const setAppStartDate = useHifzStore(s => s.setAppStartDate);
@@ -248,6 +255,39 @@ export default function TodayScreen() {
 
   return (
     <PageContainer>
+      {isAnonymous && !dismissedLinkingBanner && (
+        <View style={{ backgroundColor: 'rgba(212,168,67,0.1)', borderWidth: 1, borderColor: '#d4a843', borderRadius: 12, padding: 16, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="cloud-offline-outline" size={24} color="#d4a843" />
+              <Text style={{ color: '#f0c96b', fontSize: 16, fontWeight: 'bold' }}>تأمين حفظ بياناتك</Text>
+            </View>
+            <TouchableOpacity onPress={dismissBanner}>
+              <Ionicons name="close" size={24} color="#8b949e" />
+            </TouchableOpacity>
+          </View>
+          <Text style={{ color: '#e6edf3', fontSize: 13, textAlign: 'right', marginBottom: 16, lineHeight: 22 }}>
+            أنت تستعمل حالياً حساباً مجهولاً. يمكنك ربطه بـ Google لضمان استرجاعه عبر الأجهزة أو بعد تغيير الهاتف.
+          </Text>
+          <TouchableOpacity
+            onPress={async () => {
+              try {
+                await linkGoogleAccount();
+                Alert.alert('تم بنجاح', 'تم ربط حسابك بـ Google بنجاح!');
+              } catch (e: any) {
+                if (e.code !== 'SIGN_IN_CANCELLED') {
+                  Alert.alert('خطأ', 'تعذر ربط الحساب. المرجو المحاولة لاحقاً.');
+                }
+              }
+            }}
+            style={{ backgroundColor: '#2ea043', paddingVertical: 12, borderRadius: 8, alignItems: 'center', flexDirection: 'row-reverse', justifyContent: 'center', gap: 8 }}
+          >
+            <Ionicons name="logo-google" size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>ربط الحساب بـ Google</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Header */}
       <View style={{ alignItems: 'center', marginBottom: 32 }}>
         <Ionicons name="book-outline" size={44} color="#d4a843" />

@@ -14,9 +14,14 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { DatabaseService } from '@/data/db/DatabaseService';
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore';
+import { supabase } from '@/core/supabase/client';
 
 export default function RootLayout() {
   const router = useRouter();
+  const signInAnonymously = useAuthStore(s => s.signInAnonymously);
+  const setSession = useAuthStore(s => s.setSession);
+
   const [fontsLoaded] = useFonts({
     Cairo_400Regular,
     Cairo_700Bold,
@@ -29,6 +34,12 @@ export default function RootLayout() {
     // Initialize SQLite database (if on native)
     DatabaseService.initDb();
 
+    // Initialize Supabase Auth
+    signInAnonymously();
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+    });
+
     // Listen to notification taps to route correctly
     let isMounted = true;
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
@@ -40,6 +51,7 @@ export default function RootLayout() {
     return () => {
       isMounted = false;
       subscription.remove();
+      authListener.subscription.unsubscribe();
     };
   }, [router]);
 

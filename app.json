@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/app-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Murajaa"
+      "package": "com.murajaa.app"
     },
     "web": {
       "output": "static",
@@ -35,7 +35,8 @@
         }
       ],
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

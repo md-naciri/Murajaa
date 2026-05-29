@@ -7,6 +7,7 @@ import { TOTAL_EIGHTHS, eighthsToLabel } from '@/core/domain/hizbMath';
 import { DatabaseService } from '@/data/db/DatabaseService';
 import * as NotificationService from '@/data/services/NotificationService';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -59,6 +60,9 @@ export default function SettingsScreen() {
   const memorizedEighths = useHifzStore(s => s.memorizedEighths);
   const memorizationMode = useHifzStore(s => s.memorizationMode);
   const izharDay = useHifzStore(s => s.izharDay);
+
+  const isAnonymous = useAuthStore(s => s.isAnonymous);
+  const linkGoogleAccount = useAuthStore(s => s.linkGoogleAccount);
 
   const setMemorizationMode = useHifzStore(s => s.setMemorizationMode);
   const setMemorizedAtWeekStart = useHifzStore(s => s.setMemorizedAtWeekStart);
@@ -204,6 +208,40 @@ export default function SettingsScreen() {
         <Text style={{ color: '#f0c96b', fontSize: 22, fontWeight: 'bold', marginBottom: 4 }}>الإعدادات</Text>
         <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right' }}>إدارة الخطة وتحديث بيانات المحفوظ</Text>
       </View>
+
+      {/* Account & Backup */}
+      <Card title="الحساب والنسخ الاحتياطي" icon={<Ionicons name="cloud-done-outline" size={20} color="#d4a843" />}>
+        <View style={{ marginBottom: 8 }}>
+          {isAnonymous ? (
+            <View>
+              <Text style={{ color: '#e6edf3', fontSize: 14, textAlign: 'right', marginBottom: 12, lineHeight: 24 }}>
+                أنت تستعمل حالياً حساباً مجهولاً. يمكنك ربطه بـ Google لضمان استرجاعه عبر الأجهزة أو بعد تغيير الهاتف.
+              </Text>
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    await linkGoogleAccount();
+                    Alert.alert('تم بنجاح', 'تم ربط حسابك بـ Google بنجاح!');
+                  } catch (e: any) {
+                    if (e.code !== 'SIGN_IN_CANCELLED') {
+                      Alert.alert('خطأ', 'تعذر ربط الحساب. المرجو المحاولة لاحقاً.');
+                    }
+                  }
+                }}
+                style={{ backgroundColor: '#2ea043', paddingVertical: 12, borderRadius: 8, alignItems: 'center', flexDirection: 'row-reverse', justifyContent: 'center', gap: 8 }}
+              >
+                <Ionicons name="logo-google" size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>ربط الحساب بـ Google</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="checkmark-circle" size={20} color="#2ea043" />
+              <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold' }}>تم ربط الحساب (النسخ الاحتياطي مفعل)</Text>
+            </View>
+          )}
+        </View>
+      </Card>
 
       {/* Plan Settings */}
       <Card title="إعدادات الخطة" icon={<Ionicons name="options-outline" size={20} color="#d4a843" />}>
