@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 
-const supabaseUrl = 'https://qjeddieqlbsmxtulfyzg.supabase.co';
-const supabaseAnonKey = 'sb_publishable_oiuNlQslPoK3wJyDkjxrsQ_2H0RWlHX';
+export const supabaseUrl = 'https://qjeddieqlbsmxtulfyzg.supabase.co';
+export const supabaseAnonKey = 'sb_publishable_oiuNlQslPoK3wJyDkjxrsQ_2H0RWlHX';
 
 const isBrowser = typeof window !== 'undefined';
 

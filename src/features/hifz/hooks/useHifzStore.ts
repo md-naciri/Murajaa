@@ -26,6 +26,7 @@ export interface HifzActions {
   setAppStartDate: (dateStr: string) => void;
   setRemindersEnabled: (enabled: boolean) => void;
   setReminderTime: (timeStr: string) => void;
+  resetHifzStore: () => void;
 }
 
 export const useHifzStore = create<HifzState & HifzActions>((set) => ({
@@ -53,31 +54,64 @@ export const useHifzStore = create<HifzState & HifzActions>((set) => ({
   setAppStartDate: (dateStr) => set({ appStartDate: dateStr }),
   setRemindersEnabled: (enabled) => set({ remindersEnabled: enabled }),
   setReminderTime: (timeStr) => set({ reminderTime: timeStr }),
+  resetHifzStore: () => set({
+    memorizedEighths: 0,
+    memorizationMode: 'forward',
+    memorizedAtWeekStart: 0,
+    weekStartSavedDate: null,
+    izharDay: 4,
+    hasCompletedOnboarding: false,
+    appStartDate: null,
+    remindersEnabled: true,
+    reminderTime: '20:00',
+    _hasHydrated: true,
+  }),
 }));
 
-// --- Manual Persistence Sync ---
-// This avoids bugs with Zustand v5's persist middleware in React 19 on Web.
+let currentHifzUid: string | null = null;
 
-const STORAGE_KEY = 'murajaa-hifz-state';
-
-// 1. Hydrate state on startup
-storageAdapter.getItem(STORAGE_KEY).then((data) => {
-  if (data) {
-    try {
+// Rehydrate the store when the active user changes
+export const rehydrateHifzStore = async (uid: string, isReturningUser: boolean = false) => {
+  currentHifzUid = uid;
+  const STORAGE_KEY = `murajaa-hifz-state-${uid}`;
+  
+  // Set to false initially to block router until the SQLite read completes
+  useHifzStore.setState({ _hasHydrated: false });
+  
+  try {
+    const data = await storageAdapter.getItem(STORAGE_KEY);
+    
+    if (data) {
       const parsed = JSON.parse(data);
       useHifzStore.getState()._setHydrated(parsed);
-    } catch (e) {
-      console.error("Failed to parse persisted state", e);
-      useHifzStore.getState()._setHydrated({});
+    } else {
+      // If no data exists for this user, reset to empty state
+      useHifzStore.getState()._setHydrated({
+        memorizedEighths: 0,
+        memorizationMode: 'forward',
+        memorizedAtWeekStart: 0,
+        weekStartSavedDate: null,
+        izharDay: 4,
+        hasCompletedOnboarding: !!isReturningUser,
+        appStartDate: null,
+        remindersEnabled: true,
+        reminderTime: '20:00',
+      });
     }
-  } else {
+  } catch (e) {
+    console.error("Failed to parse hifz state", e);
     useHifzStore.getState()._setHydrated({});
   }
-});
+};
+
+export const clearHifzSession = () => {
+  currentHifzUid = null;
+  useHifzStore.getState().resetHifzStore();
+};
 
 // 2. Subscribe to changes and save automatically
 useHifzStore.subscribe((state, prevState) => {
-  if (!state._hasHydrated) return; // Don't overwrite storage before hydration is complete
+  if (!state._hasHydrated || !currentHifzUid) return; // Don't overwrite storage before hydration is complete
   
   // Only save if the actual data changed
   if (
@@ -101,6 +135,6 @@ useHifzStore.subscribe((state, prevState) => {
       remindersEnabled: state.remindersEnabled,
       reminderTime: state.reminderTime,
     };
-    storageAdapter.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    storageAdapter.setItem(`murajaa-hifz-state-${currentHifzUid}`, JSON.stringify(stateToSave));
   }
 });

@@ -2,6 +2,8 @@ import '../global.css';
 
 import React, { useEffect } from 'react';
 import { UIManager, Platform, StyleSheet, View } from 'react-native';
+import { Toast } from '@/components/ui/Toast';
+import { RecoveryConfirmModal } from '@/components/ui/RecoveryConfirmModal';
 import { AppText as Text } from '@/components/ui/AppText';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 
@@ -19,7 +21,6 @@ import { supabase } from '@/core/supabase/client';
 
 export default function RootLayout() {
   const router = useRouter();
-  const signInAnonymously = useAuthStore(s => s.signInAnonymously);
   const setSession = useAuthStore(s => s.setSession);
 
   const [fontsLoaded] = useFonts({
@@ -34,8 +35,7 @@ export default function RootLayout() {
     // Initialize SQLite database (if on native)
     DatabaseService.initDb();
 
-    // Initialize Supabase Auth
-    signInAnonymously();
+    // Initialize Supabase Auth listener
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
     });
@@ -74,6 +74,8 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" options={{ presentation: 'modal' }} />
         </Stack>
       </View>
+      <Toast />
+      <RecoveryConfirmModal />
       <StatusBar style="light" />
     </ThemeProvider>
   );

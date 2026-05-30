@@ -3,6 +3,7 @@ import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
+import { useAuthStore } from '@/features/auth/hooks/useAuthStore';
 import { ActivityIndicator, View } from 'react-native';
 
 const TAB_ICON_SIZE = 24;
@@ -20,7 +21,14 @@ export default function TabLayout() {
   }
 
   if (!hasCompletedOnboarding) {
-    return <Redirect href={"/intro" as any} />;
+    const session = useAuthStore.getState().session;
+    // If they have no session, send them to Intro
+    // If they have an active session but haven't onboarded, send them to Onboarding!
+    if (!session) {
+      return <Redirect href={"/intro" as any} />;
+    } else {
+      return <Redirect href={"/onboarding" as any} />;
+    }
   }
 
   return (

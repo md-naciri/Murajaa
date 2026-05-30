@@ -8,6 +8,7 @@ import { DatabaseService } from '@/data/db/DatabaseService';
 import * as NotificationService from '@/data/services/NotificationService';
 import { useHifzStore } from '@/features/hifz/hooks/useHifzStore';
 import { useAuthStore } from '@/features/auth/hooks/useAuthStore';
+import { useProfileStore } from '@/features/profile/hooks/useProfileStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -63,6 +64,9 @@ export default function SettingsScreen() {
 
   const isAnonymous = useAuthStore(s => s.isAnonymous);
   const linkGoogleAccount = useAuthStore(s => s.linkGoogleAccount);
+  const signOut = useAuthStore(s => s.signOut);
+  const profileEmail = useProfileStore(s => s.email);
+  const profileDisplayName = useProfileStore(s => s.displayName);
 
   const setMemorizationMode = useHifzStore(s => s.setMemorizationMode);
   const setMemorizedAtWeekStart = useHifzStore(s => s.setMemorizedAtWeekStart);
@@ -75,6 +79,7 @@ export default function SettingsScreen() {
   const setRemindersEnabled = useHifzStore(s => s.setRemindersEnabled);
   const setReminderTime = useHifzStore(s => s.setReminderTime);
 
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editAmount, setEditAmount] = useState(memorizedEighths);
 
@@ -209,23 +214,24 @@ export default function SettingsScreen() {
         <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right' }}>إدارة الخطة وتحديث بيانات المحفوظ</Text>
       </View>
 
-      {/* Account & Backup */}
-      <Card title="الحساب والنسخ الاحتياطي" icon={<Ionicons name="cloud-done-outline" size={20} color="#d4a843" />}>
+      {/* Account */}
+      <Card title="الحساب" icon={<Ionicons name="person-circle-outline" size={20} color="#d4a843" />}>
         <View style={{ marginBottom: 8 }}>
           {isAnonymous ? (
             <View>
-              <Text style={{ color: '#e6edf3', fontSize: 14, textAlign: 'right', marginBottom: 12, lineHeight: 24 }}>
-                أنت تستعمل حالياً حساباً مجهولاً. يمكنك ربطه بـ Google لضمان استرجاعه عبر الأجهزة أو بعد تغيير الهاتف.
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Ionicons name="person-outline" size={20} color="#8b949e" />
+                <Text style={{ color: '#8b949e', fontSize: 14, fontWeight: 'bold' }}>حساب محلي مجهول</Text>
+              </View>
+              <Text style={{ color: '#e6edf3', fontSize: 13, textAlign: 'right', marginBottom: 16, lineHeight: 22 }}>
+                ربط حسابك بـ Google يتيح لك مزامنة بياناتك واسترجاعها عبر الأجهزة بسهولة.
               </Text>
               <TouchableOpacity
                 onPress={async () => {
                   try {
                     await linkGoogleAccount();
-                    Alert.alert('تم بنجاح', 'تم ربط حسابك بـ Google بنجاح!');
                   } catch (e: any) {
-                    if (e.code !== 'SIGN_IN_CANCELLED') {
-                      Alert.alert('خطأ', 'تعذر ربط الحساب. المرجو المحاولة لاحقاً.');
-                    }
+                    // Toast error is handled inside useAuthStore
                   }
                 }}
                 style={{ backgroundColor: '#2ea043', paddingVertical: 12, borderRadius: 8, alignItems: 'center', flexDirection: 'row-reverse', justifyContent: 'center', gap: 8 }}
@@ -235,9 +241,22 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="checkmark-circle" size={20} color="#2ea043" />
-              <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold' }}>تم ربط الحساب (النسخ الاحتياطي مفعل)</Text>
+            <View>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <View>
+                  <Text style={{ color: '#e6edf3', fontSize: 14, fontWeight: 'bold', textAlign: 'right' }}>
+                    {profileDisplayName ? profileDisplayName : 'تم ربط الحساب بـ Google'}
+                  </Text>
+                  {profileEmail && <Text style={{ color: '#8b949e', fontSize: 13, textAlign: 'right', marginTop: 2 }}>{profileEmail}</Text>}
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSignOutModal(true)}
+                style={{ backgroundColor: 'rgba(248, 81, 73, 0.1)', borderWidth: 1, borderColor: '#f85149', paddingVertical: 10, borderRadius: 8, alignItems: 'center', flexDirection: 'row-reverse', justifyContent: 'center', gap: 8 }}
+              >
+                <Ionicons name="log-out-outline" size={18} color="#f85149" />
+                <Text style={{ color: '#f85149', fontWeight: 'bold', fontSize: 14 }}>تسجيل الخروج</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -585,6 +604,50 @@ export default function SettingsScreen() {
             >
               <Text style={{ color: '#0d1117', fontWeight: 'bold', fontSize: 16 }}>تأكيد وحفظ</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Sign Out Confirm Modal */}
+      <Modal
+        transparent={true}
+        visible={showSignOutModal}
+        animationType="fade"
+        onRequestClose={() => setShowSignOutModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#161b22', borderWidth: 1, borderColor: '#30363d', borderRadius: 16, padding: 24, width: '100%', maxWidth: 360 }}>
+            {/* Icon & Title */}
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(248, 81, 73, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                <Ionicons name="log-out-outline" size={32} color="#f85149" />
+              </View>
+              <Text style={{ color: '#e6edf3', fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>تسجيل الخروج من هذا الحساب؟</Text>
+            </View>
+
+            <Text style={{ color: '#8b949e', fontSize: 14, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
+              ستبقى بياناتك محفوظة لهذا الحساب ويمكن استرجاعها عند تسجيل الدخول مرة أخرى.
+            </Text>
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row-reverse', gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#f85149', paddingVertical: 14, borderRadius: 8, alignItems: 'center' }}
+                onPress={async () => {
+                  setShowSignOutModal(false);
+                  await signOut();
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>تسجيل الخروج</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#30363d', paddingVertical: 14, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#8b949e' }}
+                onPress={() => setShowSignOutModal(false)}
+              >
+                <Text style={{ color: '#e6edf3', fontWeight: 'bold', fontSize: 15 }}>إلغاء</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

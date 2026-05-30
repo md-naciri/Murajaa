@@ -74,7 +74,7 @@ export default function IntroScreen() {
       {/* Sticky Bottom Button */}
       <View style={{ padding: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#30363d', backgroundColor: '#0d1117' }}>
         <TouchableOpacity
-          onPress={() => router.replace('/onboarding')}
+          onPress={() => router.replace('/optional-auth')}
           style={{
             backgroundColor: '#d4a843',
             paddingVertical: 16,
@@ -87,7 +87,7 @@ export default function IntroScreen() {
             elevation: 4,
           }}
         >
-          <Text style={{ color: '#0d1117', fontSize: 18, fontWeight: 'bold' }}>البدء بإعداد الخطة</Text>
+          <Text style={{ color: '#0d1117', fontSize: 18, fontWeight: 'bold' }}>التالي</Text>
         </TouchableOpacity>
       </View>
     </PageContainer>

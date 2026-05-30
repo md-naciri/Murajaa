@@ -273,11 +273,8 @@ export default function TodayScreen() {
             onPress={async () => {
               try {
                 await linkGoogleAccount();
-                Alert.alert('تم بنجاح', 'تم ربط حسابك بـ Google بنجاح!');
               } catch (e: any) {
-                if (e.code !== 'SIGN_IN_CANCELLED') {
-                  Alert.alert('خطأ', 'تعذر ربط الحساب. المرجو المحاولة لاحقاً.');
-                }
+                // Toasts are handled natively inside useAuthStore
               }
             }}
             style={{ backgroundColor: '#2ea043', paddingVertical: 12, borderRadius: 8, alignItems: 'center', flexDirection: 'row-reverse', justifyContent: 'center', gap: 8 }}
